@@ -14,14 +14,14 @@
 ;; A Piece can be on the board, or be captured
 (defrecord Piece [team type moved?])
 
-;; The board is a hash table mapping coords to pieces
+;; 'board' is a hash table mapping coords to pieces
 ;; Ex. (board (Coord 0 0)) => (Piece :rook :black false)
-
-;; 'board' is the current board state. 'white-caps' and 'black-caps'
-;; map from a piece type to a count of captures.
-;; TODO: Maybe change this to one map that maps from team/type to
-;; capture count?
-(defrecord GameState [board white-caps black-caps])
+;; 'captures' is a hash table mapping teams/type pairs to number of captures
+;; Ex. (caps (cons WHITE PAWN)) => 2
+;;     (caps (cons BLACK KING)) => nil
+;; Use 0 as a default value to get an accurate count when none are captured
+;;     (caps (cons BLACK KING) 0) => 0
+(defrecord GameState [board captures])
 
 (defrecord Move [from to])
 
@@ -133,33 +133,25 @@
       (map offset king-moves)
       [QUEEN]
       (concat (accum-straight board team coord)
-              (accum-diagonal board team coord))
-      ))
+              (accum-diagonal board team coord))))
   (filter valid-coord? moves))
 
 (defn apply-move [game move]
   (def board (:board game))
-  (def white-caps (:white-caps game))
-  (def black-caps (:black-caps game))
+  (def caps (:captures game))
   (def from (:from move))
   (def to (:to move))
   (def move-piece (board from))
   (def cap-piece (board to))
-  (def team (:team cap-piece))
-  (def new-board (assoc (dissoc board to) from move-piece))
-  (def new-white-caps
-    (if (= team WHITE)
-      white-caps
-      (assoc white-caps team (add1 (white-caps team 0)))))
-  (def new-black-caps
-    (if (= team BLACK)
-      black-caps
-      (assoc black-caps team (add1 (black-caps team 0)))))
-  (GameState. new-board new-white-caps new-black-caps))
+  (def team+type (cons (:team cap-piece) (:type cap-piece)))
+  (GameState.
+   (assoc (dissoc board from) to move-piece)
+   (assoc caps team+type (add1 (caps team+type 0)))))
 
 (defn winner [game]
-  (cond ((:black-caps game) KING) BLACK
-        ((:white-caps game) KING) WHITE
+  (def caps (:captures game))
+  (cond (caps (cons BLACK KING)) WHITE
+        (caps (cons WHITE KING)) BLACK
         :else nil))
 
 (defn init-game []
@@ -208,4 +200,4 @@
      (Coord. 5 6) wpawn
      (Coord. 6 6) wpawn
      (Coord. 7 6) wpawn})
-  (GameState. board {} {}))
+  (GameState. board {}))
