@@ -18,9 +18,9 @@
 ;; Ex. (board (Coord 0 0)) => (Piece :rook :black false)
 
 ;; 'board' is the current board state. 'white-caps' and 'black-caps'
-;; are lists of captured pieces, so we can show which pieces have been
-;; captured in our UI. We will keep a list of these GameState objects,
-;; so that we can rewind easily.
+;; map from a piece type to a count of captures.
+;; TODO: Maybe change this to one map that maps from team/type to
+;; capture count?
 (defrecord GameState [board white-caps black-caps])
 
 (defrecord Move [from to])
@@ -136,3 +136,76 @@
               (accum-diagonal board team coord))
       ))
   (filter valid-coord? moves))
+
+(defn apply-move [game move]
+  (def board (:board game))
+  (def white-caps (:white-caps game))
+  (def black-caps (:black-caps game))
+  (def from (:from move))
+  (def to (:to move))
+  (def move-piece (board from))
+  (def cap-piece (board to))
+  (def team (:team cap-piece))
+  (def new-board (assoc (dissoc board to) from move-piece))
+  (def new-white-caps
+    (if (= team WHITE)
+      white-caps
+      (assoc white-caps team (add1 (white-caps team 0)))))
+  (def new-black-caps
+    (if (= team BLACK)
+      black-caps
+      (assoc black-caps team (add1 (black-caps team 0)))))
+  (GameState. new-board new-white-caps new-black-caps))
+
+(defn winner [game]
+  (cond ((:black-caps game) KING) BLACK
+        ((:white-caps game) KING) WHITE
+        :else nil))
+
+(defn init-game []
+  (def wpawn (Piece. WHITE PAWN))
+  (def wrook (Piece. WHITE ROOK))
+  (def wknight (Piece. WHITE KNIGHT))
+  (def wbishop (Piece. WHITE BISHOP))
+  (def wqueen (Piece. WHITE QUEEN))
+  (def wking (Piece. WHITE KING))
+  (def bpawn (Piece. BLACK PAWN))
+  (def brook (Piece. BLACK ROOK))
+  (def bknight (Piece. BLACK KNIGHT))
+  (def bbishop (Piece. BLACK BISHOP))
+  (def bqueen (Piece. BLACK QUEEN))
+  (def bking (Piece. BLACK KING))
+  (def board
+    {(Coord. 0 0) brook
+     (Coord. 7 0) brook
+     (Coord. 1 0) bknight
+     (Coord. 6 0) bknight
+     (Coord. 2 0) bbishop
+     (Coord. 5 0) bbishop
+     (Coord. 3 0) bqueen
+     (Coord. 4 0) bking
+     (Coord. 0 1) bpawn
+     (Coord. 1 1) bpawn
+     (Coord. 2 1) bpawn
+     (Coord. 3 1) bpawn
+     (Coord. 4 1) bpawn
+     (Coord. 5 1) bpawn
+     (Coord. 6 1) bpawn
+     (Coord. 7 1) bpawn
+     (Coord, 0 7) wrook
+     (Coord. 7 7) wrook
+     (Coord. 1 7) wknight
+     (Coord. 6 7) wknight
+     (Coord. 2 7) wbishop
+     (Coord. 5 7) wbishop
+     (Coord. 3 7) wqueen
+     (Coord. 4 7) wking
+     (Coord. 0 6) wpawn
+     (Coord. 1 6) wpawn
+     (Coord. 2 6) wpawn
+     (Coord. 3 6) wpawn
+     (Coord. 4 6) wpawn
+     (Coord. 5 6) wpawn
+     (Coord. 6 6) wpawn
+     (Coord. 7 6) wpawn})
+  (GameState. board {} {}))
