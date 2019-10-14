@@ -128,22 +128,44 @@
        (concat (accum-straight board team coord)
                (accum-diagonal board team coord))))))
 
-(defn apply-move [game move]
-  (let [{board :board caps :captures} game
-        {from :from to :to} move
-        move-piece (let [{tm :team ty :type mv? :moved? :as pc} (board from)]
-                     (if mv? pc (Piece. tm ty true)))
-        {team :team type :type} (board to)
-        team+type (cons team type)]
+(defn apply-move-to-board [board {to :to from :from}]
+  (let [{team :team type :type moved? :moved? :as piece} (board from)
+        move-piece (if moved? piece (Piece. team type true))
+        cap-piece (board to)]
+    [(-> board
+         (dissoc from)
+         (assoc to move-piece))
+     cap-piece]))
+
+(defn apply-move [{board :board caps :captures} {from :from to :to :as move}]
+  (let [[new-board cap-piece] (apply-move-to-board board move)]
     (GameState.
-     (assoc (dissoc board from) to move-piece)
-     (assoc caps team+type (add1 (caps team+type 0))))))
+     new-board
+     (if cap-piece
+       (let [{team :team type :type} cap-piece
+             team+type (cons team type)]
+         (assoc caps team+type (inc (caps team+type 0))))
+       caps))))
 
 (defn winner [game]
   (let [caps (:captures game)]
     (cond (caps (cons BLACK KING)) WHITE
           (caps (cons WHITE KING)) BLACK
-          :else nil)))
+          :else nil))) 
+
+;; TODO: This should be checking the to-space of each enemy
+;; move against the location of the king, not the piece that
+;; moves.
+(defn check? [board {from :from to :to :as move}]
+  (let [{team :team} (board from)
+        [board _] (apply-move-to-board board move)
+        moves (flatten
+               (for [[pos piece] (~seq board)
+                     :when (not (= team (:team piece)))]
+                 (valid-moves board pos)))]
+    (reduce (fn [out {enemy-to :to}]
+              (and out (= to enemy-to)))
+            false moves)))
 
 (def wpawn (Piece. WHITE PAWN false))
 (def wrook (Piece. WHITE ROOK false))
