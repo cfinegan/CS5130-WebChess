@@ -151,7 +151,7 @@
   (let [caps (:captures game)]
     (cond (caps (cons BLACK KING)) WHITE
           (caps (cons WHITE KING)) BLACK
-          :else nil))) 
+          :else nil)))
 
 ;; TODO: This should be checking the to-space of each enemy
 ;; move against the location of the king, not the piece that
