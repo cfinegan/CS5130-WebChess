@@ -1,4 +1,6 @@
-(ns chess.db)
+(ns chess.db
+  (:require [chess.chess :as chess]))
 
 (def default-db
-  {:name "re-frame"})
+  {:name "re-frame"
+   :game chess/default-game})

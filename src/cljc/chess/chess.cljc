@@ -40,24 +40,24 @@
        (< (:y coord) 8) (>= (:y coord) 0)))
 
 (defn accum-tiles [x-xform y-xform board team start]
-  (def start-x (x-xform (:x start)))
-  (def start-y (y-xform (:y start)))
-  (loop [pos (Coord. start-x start-y)
-         out '()]
-    (def piece (board pos))
-    (cond
-      ;; Terminate if pos is off board, or has same team's piece.
-      (or (not (valid-coord? pos))
-          (and piece (= (:team piece) team)))
-      out
-      ;; Terminate with current tile if pos has other team's piece.
-      piece
-      (cons pos out)
-      ;; Otherwise keep searching
-      :else
-      (let [new-x (x-xform (:x pos))
-            new-y (y-xform (:y pos))]
-        (recur (Coord. new-x new-y) (cons pos out))))))
+  (let [start-x (x-xform (:x start))
+        start-y (y-xform (:y start))]
+    (loop [pos (Coord. start-x start-y)
+           out '()]
+      (let [piece (board pos)]
+        (cond
+          ;; Terminate if pos is off board, or has same team's piece.
+          (or (not (valid-coord? pos))
+              (and piece (= (:team piece) team)))
+          out
+          ;; Terminate with current tile if pos has other team's piece.
+          piece
+          (cons pos out)
+          ;; Otherwise keep searching
+          :else
+          (let [new-x (x-xform (:x pos))
+                new-y (y-xform (:y pos))]
+            (recur (Coord. new-x new-y) (cons pos out))))))))
 
 (defn add1 [x] (+ x 1))
 (defn sub1 [x] (- x 1))
@@ -94,110 +94,101 @@
 ;; at 'coord'. We should probably return some bottom value
 ;; when the piece doesn't exist, distinct from '() since '()
 ;; is also returned when the piece exists but has no valid moves.
-(defn valid-moves [board coord]
-  (def px (:x coord))
-  (def py (:y coord))
-  (def piece (board coord))
-  (def team (:team piece))
-  (def type (:type piece))
-  (def moved? (:moved? piece))
-  (defn offset [base]
-    (Coord. (+ px (:x base)) (+ py (:y base))))
-  (def moves
-    (match [type]
-      [PAWN]
-      (do (def inc (if (= team WHITE) -1 1))
-          (def fwd1
-            (let [c (Coord. px (+ inc py))]
-              (if (board c) nil (list c))))
-          (def fwd2
-            (and (not moved?) fwd1 (let [c (Coord. px (+ inc inc py))]
-                                     (if (board c) nil (list c)))))
-          (def ldiag
-            (let [c (Coord. (- px 1) (+ inc py))]
-              (let [p (board c)]
-                (and p (not (= (:team p) team)) (list c)))))
-          (def rdiag
-            (let [c (Coord. (+ px 1) (+ inc py))]
-              (let [p (board c)]
-                (and p (not (= (:team p) team)) (list c)))))
-          (concat fwd1 fwd2 ldiag rdiag))
-      [ROOK]
-      (accum-straight board team coord)
-      [BISHOP]
-      (accum-diagonal board team coord)
-      [KNIGHT]
-      (map offset knight-moves)
-      [KING]
-      ;; TODO: Logic for castling goes here? Or somewhere else?
-      (map offset king-moves)
-      [QUEEN]
-      (concat (accum-straight board team coord)
-              (accum-diagonal board team coord))))
-  (filter valid-coord? moves))
+(defn valid-moves [board {px :x py :y :as coord}]
+  (let [{team :team type :type moved? :moved? :as piece} (board coord)
+        offset (fn [{x :x y :y}] (Coord. (+ px x) (+ py y)))]
+    (filter
+     valid-coord?
+     (match [type]
+       [PAWN]
+       (let [dir (if (= team WHITE) -1 1)
+             fwd1 (let [c (Coord. px (+ dir py))]
+                    (if (board c) nil (list c)))
+             fwd2 (and (not moved?)
+                       fwd1
+                       (let [c (Coord. px (+ dir dir py))]
+                         (if (board c) nil (list c))))
+             ldiag (let [c (Coord. (- px 1) (+ dir py))
+                         p (board c)]
+                     (and p (not (= (:team p) team)) (list c)))
+             rdiag (let [c (Coord. (+ px 1) (+ dir py))
+                         p (board c)]
+                     (and p (not (= (:team p) team)) (list c)))]
+         (concat fwd1 fwd2 ldiag rdiag))
+       [ROOK]
+       (accum-straight board team coord)
+       [BISHOP]
+       (accum-diagonal board team coord)
+       [KNIGHT]
+       (map offset knight-moves)
+       [KING]
+       ;; TODO: Logic for castling goes here? Or somewhere else?
+       (map offset king-moves)
+       [QUEEN]
+       (concat (accum-straight board team coord)
+               (accum-diagonal board team coord))))))
 
 (defn apply-move [game move]
-  (def board (:board game))
-  (def caps (:captures game))
-  (def from (:from move))
-  (def to (:to move))
-  (def move-piece (board from))
-  (def cap-piece (board to))
-  (def team+type (cons (:team cap-piece) (:type cap-piece)))
-  (GameState.
-   (assoc (dissoc board from) to move-piece)
-   (assoc caps team+type (add1 (caps team+type 0)))))
+  (let [{board :board caps :captures} game
+        {from :from to :to} move
+        move-piece (let [{tm :team ty :type mv? :moved? :as pc} (board from)]
+                     (if mv? pc (Piece. tm ty true)))
+        {team :team type :type} (board to)
+        team+type (cons team type)]
+    (GameState.
+     (assoc (dissoc board from) to move-piece)
+     (assoc caps team+type (add1 (caps team+type 0))))))
 
 (defn winner [game]
-  (def caps (:captures game))
-  (cond (caps (cons BLACK KING)) WHITE
-        (caps (cons WHITE KING)) BLACK
-        :else nil))
+  (let [caps (:captures game)]
+    (cond (caps (cons BLACK KING)) WHITE
+          (caps (cons WHITE KING)) BLACK
+          :else nil)))
 
-(defn init-game []
-  (def wpawn (Piece. WHITE PAWN))
-  (def wrook (Piece. WHITE ROOK))
-  (def wknight (Piece. WHITE KNIGHT))
-  (def wbishop (Piece. WHITE BISHOP))
-  (def wqueen (Piece. WHITE QUEEN))
-  (def wking (Piece. WHITE KING))
-  (def bpawn (Piece. BLACK PAWN))
-  (def brook (Piece. BLACK ROOK))
-  (def bknight (Piece. BLACK KNIGHT))
-  (def bbishop (Piece. BLACK BISHOP))
-  (def bqueen (Piece. BLACK QUEEN))
-  (def bking (Piece. BLACK KING))
-  (def board
-    {(Coord. 0 0) brook
-     (Coord. 7 0) brook
-     (Coord. 1 0) bknight
-     (Coord. 6 0) bknight
-     (Coord. 2 0) bbishop
-     (Coord. 5 0) bbishop
-     (Coord. 3 0) bqueen
-     (Coord. 4 0) bking
-     (Coord. 0 1) bpawn
-     (Coord. 1 1) bpawn
-     (Coord. 2 1) bpawn
-     (Coord. 3 1) bpawn
-     (Coord. 4 1) bpawn
-     (Coord. 5 1) bpawn
-     (Coord. 6 1) bpawn
-     (Coord. 7 1) bpawn
-     (Coord, 0 7) wrook
-     (Coord. 7 7) wrook
-     (Coord. 1 7) wknight
-     (Coord. 6 7) wknight
-     (Coord. 2 7) wbishop
-     (Coord. 5 7) wbishop
-     (Coord. 3 7) wqueen
-     (Coord. 4 7) wking
-     (Coord. 0 6) wpawn
-     (Coord. 1 6) wpawn
-     (Coord. 2 6) wpawn
-     (Coord. 3 6) wpawn
-     (Coord. 4 6) wpawn
-     (Coord. 5 6) wpawn
-     (Coord. 6 6) wpawn
-     (Coord. 7 6) wpawn})
-  (GameState. board {}))
+(def wpawn (Piece. WHITE PAWN false))
+(def wrook (Piece. WHITE ROOK false))
+(def wknight (Piece. WHITE KNIGHT false))
+(def wbishop (Piece. WHITE BISHOP false))
+(def wqueen (Piece. WHITE QUEEN false))
+(def wking (Piece. WHITE KING false))
+(def bpawn (Piece. BLACK PAWN false))
+(def brook (Piece. BLACK ROOK false))
+(def bknight (Piece. BLACK KNIGHT false))
+(def bbishop (Piece. BLACK BISHOP false))
+(def bqueen (Piece. BLACK QUEEN false))
+(def bking (Piece. BLACK KING false))
+
+(def default-game
+  (GameState.
+   {(Coord. 0 0) brook
+    (Coord. 7 0) brook
+    (Coord. 1 0) bknight
+    (Coord. 6 0) bknight
+    (Coord. 2 0) bbishop
+    (Coord. 5 0) bbishop
+    (Coord. 3 0) bqueen
+    (Coord. 4 0) bking
+    (Coord. 0 1) bpawn
+    (Coord. 1 1) bpawn
+    (Coord. 2 1) bpawn
+    (Coord. 3 1) bpawn
+    (Coord. 4 1) bpawn
+    (Coord. 5 1) bpawn
+    (Coord. 6 1) bpawn
+    (Coord. 7 1) bpawn
+    (Coord. 0 7) wrook
+    (Coord. 7 7) wrook
+    (Coord. 1 7) wknight
+    (Coord. 6 7) wknight
+    (Coord. 2 7) wbishop
+    (Coord. 5 7) wbishop
+    (Coord. 3 7) wqueen
+    (Coord. 4 7) wking
+    (Coord. 0 6) wpawn
+    (Coord. 1 6) wpawn
+    (Coord. 2 6) wpawn
+    (Coord. 3 6) wpawn
+    (Coord. 4 6) wpawn
+    (Coord. 5 6) wpawn
+    (Coord. 6 6) wpawn
+    (Coord. 7 6) wpawn} {}))
