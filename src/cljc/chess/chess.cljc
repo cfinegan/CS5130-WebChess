@@ -160,7 +160,7 @@
   (let [{team :team} (board from)
         [board _] (apply-move-to-board board move)
         moves (flatten
-               (for [[pos piece] (~seq board)
+               (for [[pos piece] (seq board)
                      :when (not (= team (:team piece)))]
                  (valid-moves board pos)))]
     (reduce (fn [out {enemy-to :to}]
