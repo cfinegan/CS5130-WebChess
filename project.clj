@@ -21,7 +21,8 @@
 
   :aliases
   {"dev"  ["with-profile" "dev" "run" "-m" "shadow.cljs.devtools.cli" "watch" "app"]
-   "prod" ["with-profile" "prod" "run" "-m" "shadow.cljs.devtools.cli" "release" "app"]}
+   "prod" ["with-profile" "prod" "run" "-m" "shadow.cljs.devtools.cli" "release" "app"]
+   "serv" ["run" "-m" "chess.serv"]}
 
   :profiles
   {:dev
