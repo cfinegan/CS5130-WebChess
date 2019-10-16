@@ -167,6 +167,21 @@
               (and out (= to enemy-to)))
             false moves)))
 
+(defn find-king [board team]
+  (loop [board (seq board)]
+    (if (empty? board)
+      nil
+      (let [[pos piece] (first board)]
+        (if (and (= team (:team piece))
+                 (= KING (:type piece)))
+          pos
+          (recur (rest board)))))))
+
+(defn find-team [board team]
+  (for [[pos piece] board
+        :when (= team (:team piece))]
+    pos))
+
 (def wpawn (Piece. WHITE PAWN false))
 (def wrook (Piece. WHITE ROOK false))
 (def wknight (Piece. WHITE KNIGHT false))
