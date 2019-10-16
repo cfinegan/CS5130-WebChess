@@ -153,20 +153,6 @@
           (caps (cons WHITE KING)) BLACK
           :else nil)))
 
-;; TODO: This should be checking the to-space of each enemy
-;; move against the location of the king, not the piece that
-;; moves.
-(defn check? [board {from :from to :to :as move}]
-  (let [{team :team} (board from)
-        [board _] (apply-move-to-board board move)
-        moves (flatten
-               (for [[pos piece] (seq board)
-                     :when (not (= team (:team piece)))]
-                 (valid-moves board pos)))]
-    (reduce (fn [out {enemy-to :to}]
-              (and out (= to enemy-to)))
-            false moves)))
-
 (defn find-king [board team]
   (loop [board (seq board)]
     (if (empty? board)
@@ -181,6 +167,21 @@
   (for [[pos piece] board
         :when (= team (:team piece))]
     pos))
+
+(defn other-team [team]
+  (match team
+    [WHITE] BLACK
+    [BLACK] WHITE))
+
+(defn check? [board team]
+  (let [king (find-king board team)
+        enemy (find-team board (other-team team))
+        moves (flatten (map valid-moves enemy))]
+    (loop [moves moves]
+      (let [{to :to} (first moves)]
+        (cond (empty? moves) false
+              (= king to) true
+              :else (recur (rest moves)))))))
 
 (def wpawn (Piece. WHITE PAWN false))
 (def wrook (Piece. WHITE ROOK false))
