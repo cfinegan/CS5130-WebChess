@@ -43,7 +43,7 @@
   (let [start-x (x-xform (:x start))
         start-y (y-xform (:y start))]
     (loop [pos (Coord. start-x start-y)
-           out '()]
+           out []]
       (let [piece (board pos)]
         (cond
           ;; Terminate if pos is off board, or has same team's piece.
@@ -52,12 +52,12 @@
           out
           ;; Terminate with current tile if pos has other team's piece.
           piece
-          (cons pos out)
+          (conj pos out)
           ;; Otherwise keep searching
           :else
           (let [new-x (x-xform (:x pos))
                 new-y (y-xform (:y pos))]
-            (recur (Coord. new-x new-y) (cons pos out))))))))
+            (recur (Coord. new-x new-y) (conj pos out))))))))
 
 (defn add1 [x] (+ x 1))
 (defn sub1 [x] (- x 1))
@@ -95,12 +95,14 @@
 ;; when the piece doesn't exist, distinct from '() since '()
 ;; is also returned when the piece exists but has no valid moves.
 (defn valid-moves [board {px :x py :y :as coord}]
+  (println "in valid moves!!")
   (let [{team :team type :type moved? :moved? :as piece} (board coord)
         offset (fn [{x :x y :y}] (Coord. (+ px x) (+ py y)))]
+    (println piece)
     (filter
      valid-coord?
-     (match [type]
-       [PAWN]
+     (cond
+       (= type PAWN)
        (let [dir (if (= team WHITE) -1 1)
              fwd1 (let [c (Coord. px (+ dir py))]
                     (if (board c) nil (list c)))
@@ -115,16 +117,16 @@
                          p (board c)]
                      (and p (not (= (:team p) team)) (list c)))]
          (concat fwd1 fwd2 ldiag rdiag))
-       [ROOK]
+       (= type ROOK)
        (accum-straight board team coord)
-       [BISHOP]
+       (= type BISHOP)
        (accum-diagonal board team coord)
-       [KNIGHT]
+       (= type KNIGHT)
        (map offset knight-moves)
-       [KING]
+       (= type KING)
        ;; TODO: Logic for castling goes here? Or somewhere else?
        (map offset king-moves)
-       [QUEEN]
+       (= type QUEEN)
        (concat (accum-straight board team coord)
                (accum-diagonal board team coord))))))
 
@@ -136,6 +138,9 @@
          (dissoc from)
          (assoc to move-piece))
      cap-piece]))
+
+(defn apply-move-to-board* [board move]
+  (first (apply-move-to-board board move)))
 
 (defn apply-move [{board :board caps :captures} {from :from to :to :as move}]
   (let [[new-board cap-piece] (apply-move-to-board board move)]
@@ -169,19 +174,26 @@
     pos))
 
 (defn other-team [team]
-  (match team
-    [WHITE] BLACK
-    [BLACK] WHITE))
+  (cond (= team WHITE) BLACK
+        (= team BLACK) WHITE))
 
 (defn check? [board team]
+  (println "in check? !!")
   (let [king (find-king board team)
         enemy (find-team board (other-team team))
-        moves (flatten (map valid-moves enemy))]
+        moves (flatten (map #(valid-moves board %1) enemy))]
+    (println moves)
     (loop [moves moves]
       (let [{to :to} (first moves)]
         (cond (empty? moves) false
               (= king to) true
               :else (recur (rest moves)))))))
+
+(defn check-mate? [board team]
+  (let [friends (find-team board team)
+        moves (flatten (map valid-moves friends))
+        futures (map apply-move-to-board* moves)]
+    (reduce #(or %1 %2) false (map check? futures))))
 
 (def wpawn (Piece. WHITE PAWN false))
 (def wrook (Piece. WHITE ROOK false))
