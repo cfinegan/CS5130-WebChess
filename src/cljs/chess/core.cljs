@@ -14,7 +14,7 @@
 
 (defn ^:dev/after-load mount-root []
   (re-frame/clear-subscription-cache!)
-  (reagent/render [views/main-panel]
+  (reagent/render [views/board-panel]
                   (.getElementById js/document "app")))
 
 (defn init []
