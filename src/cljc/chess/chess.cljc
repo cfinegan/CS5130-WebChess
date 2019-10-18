@@ -179,7 +179,6 @@
   (let [king (find-king board team)
         enemy (find-team board (other-team team))
         moves (flatten (map #(valid-moves board %1) enemy))]
-    (println moves)
     (loop [moves moves]
       (let [{to :to} (first moves)]
         (cond (empty? moves) false
