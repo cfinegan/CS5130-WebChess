@@ -95,7 +95,6 @@
 ;; when the piece doesn't exist, distinct from '() since '()
 ;; is also returned when the piece exists but has no valid moves.
 (defn valid-moves [board {px :x py :y :as coord}]
-  (println "in valid moves!!")
   (let [{team :team type :type moved? :moved? :as piece} (board coord)
         offset (fn [{x :x y :y}] (Coord. (+ px x) (+ py y)))]
     (println piece)
@@ -178,7 +177,6 @@
         (= team BLACK) WHITE))
 
 (defn check? [board team]
-  (println "in check? !!")
   (let [king (find-king board team)
         enemy (find-team board (other-team team))
         moves (flatten (map #(valid-moves board %1) enemy))]
