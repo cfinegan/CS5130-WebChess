@@ -97,7 +97,6 @@
 (defn valid-moves [board {px :x py :y :as coord}]
   (let [{team :team type :type moved? :moved? :as piece} (board coord)
         offset (fn [{x :x y :y}] (Coord. (+ px x) (+ py y)))]
-    (println piece)
     (filter
      valid-coord?
      (cond
