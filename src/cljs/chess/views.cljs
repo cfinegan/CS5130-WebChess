@@ -3,6 +3,7 @@
    [re-frame.core :as re-frame]
    [chess.subs :as subs]
    [chess.chess :as chess]
+   [chess.macros :refer-macros [forv]]
    ))
 
 (defn piece->string [{team :team type :type}]
@@ -31,12 +32,10 @@
                        :height "300px"
                        :text-align "center"}}
       `[:tbody
-        ~@(into
-           [] (for [i (range 8)]
-                `[:tr ~@(into
-                         [] (for [j (range 8)]
-                              [:td (let [piece (@board (chess/->Coord j i))]
-                                     (if piece (piece->string piece)
-                                         {:dangerouslySetInnerHTML
-                                          {:__html "&nbsp;"}}))]))]))]]]))
+        ~@(forv [i (range 8)]
+            `[:tr ~@(forv [j (range 8)]
+                      [:td (let [piece (@board (chess/->Coord j i))]
+                             (if piece (piece->string piece)
+                                 {:dangerouslySetInnerHTML
+                                  {:__html "&nbsp;"}}))])])]]]))
       
