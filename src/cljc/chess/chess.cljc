@@ -95,8 +95,7 @@
 ;; when the piece doesn't exist, distinct from '() since '()
 ;; is also returned when the piece exists but has no valid moves.
 (defn valid-moves [board {px :x py :y :as coord}]
-  (let [{team :team type :type moved? :moved? :as piece} (board coord)
-        offset (fn [{x :x y :y}] (Coord. (+ px x) (+ py y)))]
+  (let [{team :team type :type moved? :moved? :as piece} (board coord)]
     (filter
      valid-coord?
      (cond
@@ -120,10 +119,18 @@
        (= type BISHOP)
        (accum-diagonal board team coord)
        (= type KNIGHT)
-       (map offset knight-moves)
+       (for [{x :x y :y} knight-moves
+             :let [coord* (Coord. (+ x px) (+ y py))
+                   piece* (board coord*)]
+             :when (not (and piece* (= team (:team piece*))))]
+         coord*)
        (= type KING)
        ;; TODO: Logic for castling goes here? Or somewhere else?
-       (map offset king-moves)
+       (for [{x :x y :y} king-moves
+             :let [coord* (Coord. (+ x px) (+ y py))
+                   piece* (board coord*)]
+             :when (not (and piece* (= team (:team piece*))))]
+         coord*)
        (= type QUEEN)
        (concat (accum-straight board team coord)
                (accum-diagonal board team coord))))))
