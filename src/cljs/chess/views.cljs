@@ -23,6 +23,11 @@
      [:h1 "Hello from " @name]
      ]))
 
+(defn make-on-click [x y]
+  (fn [e]
+    (.preventDefault e)
+    (re-frame/dispatch [:board-click x y])))
+
 (defn board-panel []
   (let [board (re-frame/subscribe [::subs/board])]
     [:div
@@ -34,8 +39,11 @@
       `[:tbody
         ~@(forv [i (range 8)]
             `[:tr ~@(forv [j (range 8)]
-                      [:td (let [piece (@board (chess/->Coord j i))]
-                             (if piece (piece->string piece)
-                                 {:dangerouslySetInnerHTML
-                                  {:__html "&nbsp;"}}))])])]]]))
+                      (let [piece (@board (chess/->Coord j i))]
+                        (if piece
+                          [:td {:on-click (make-on-click j i)}
+                           (piece->string piece)]
+                          [:td {:on-click (make-on-click j i)
+                                :dangerouslySetInnerHTML
+                                {:__html "&nbsp;"}}])))])]]]))
       
