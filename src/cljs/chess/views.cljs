@@ -17,19 +17,15 @@
                           (= type chess/QUEEN) "Q")]
     (str team-string type-string)))
 
-(defn main-panel []
-  (let [name (re-frame/subscribe [::subs/name])]
-    [:div
-     [:h1 "Hello from " @name]
-     ]))
-
 (defn make-on-click [x y]
   (fn [e]
     (.preventDefault e)
     (re-frame/dispatch [:board-click x y])))
 
 (defn board-panel []
-  (let [board (re-frame/subscribe [::subs/board])]
+  (let [board (re-frame/subscribe [::subs/board])
+        selection (re-frame/subscribe [::subs/selection])
+        moves (and @selection (chess/valid-moves @board @selection))]
     [:div
      [:table {:border 1
               :style  {:table-layout "fixed"
@@ -38,12 +34,28 @@
                        :text-align "center"}}
       `[:tbody
         ~@(forv [i (range 8)]
-            `[:tr ~@(forv [j (range 8)]
-                      (let [piece (@board (chess/->Coord j i))]
-                        (if piece
-                          [:td {:on-click (make-on-click j i)}
-                           (piece->string piece)]
-                          [:td {:on-click (make-on-click j i)
-                                :dangerouslySetInnerHTML
-                                {:__html "&nbsp;"}}])))])]]]))
+            `[:tr
+              ~@(forv [j (range 8)]
+                  (let [pos (chess/->Coord j i)
+                        piece (@board pos)
+                        bg (cond (= pos @selection) "#cccccc"
+                                 (and moves (some #(= pos %) moves)) "blue"
+                                 :else "white")]
+                    (if piece
+                      [:td {:on-click (make-on-click j i)
+                            :style {:background-color bg}}
+                       (piece->string piece)]
+                      [:td {:on-click (make-on-click j i)
+                            :style {:background-color bg}
+                            :dangerouslySetInnerHTML
+                            {:__html "&nbsp;"}}])))])]]]))
+
+(defn message-panel []
+  (let [msg (re-frame/subscribe [::subs/message])]
+    [:div @msg]))
       
+(defn main-panel []
+  [:div
+   (message-panel)
+   [:br]
+   (board-panel)])

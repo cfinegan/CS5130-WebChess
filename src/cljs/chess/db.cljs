@@ -2,5 +2,6 @@
   (:require [chess.chess :as chess]))
 
 (def default-db
-  {:name "re-frame"
-   :game chess/default-game})
+  {:history [chess/default-game]
+   :selection nil
+   :message "hello world"})
