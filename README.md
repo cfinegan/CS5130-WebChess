@@ -27,4 +27,4 @@ Coming Soon!
 - replace the text/table board with a graphical one (probably want to still use an HTML table, but remove all the borders/padding and put the tile IMGs inside)
 - Add style to the page (!!!)
 - Add an undo button, so we can make sure that rollback is working correctly
-- Detect when one side has one, and go to some end-game state
+- Detect when one side has won, and go to some end-game state
