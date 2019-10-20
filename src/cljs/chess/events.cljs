@@ -36,7 +36,12 @@
                          :history (conj @history new-game)
                          :selection nil
                          :message "the move is valid!")})
-           {:db (assoc (:db cofx) :message "the move isn't valid")}))
+           (if (= @selection pos)
+             {:db (assoc (:db cofx)
+                         :history @history
+                         :selection nil
+                         :message "unselecting the piece")}
+             {:db (assoc (:db cofx) :message "the move isn't valid")})))
        ;; Else if click was an empty space, or an enemy piece, show error
        (not piece)
        {:db (assoc (:db cofx) :message "cannot select empty space")}
