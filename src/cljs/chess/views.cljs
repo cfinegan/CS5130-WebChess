@@ -39,8 +39,7 @@
                   (let [pos (chess/->Coord j i)
                         piece (@board pos)
                         bg (cond (= pos @selection) "#cccccc"
-                                 (and moves (some #(= pos %) moves)) "blue"
-                                 :else "white")]
+                                 (and moves (some #(= pos %) moves)) "blue")]
                     (if piece
                       [:td {:on-click (make-on-click j i)
                             :style {:background-color bg}}
