@@ -16,11 +16,11 @@
 
 ;; 'board' is a hash table mapping coords to pieces
 ;; Ex. (board (Coord 0 0)) => (Piece :rook :black false)
-;; 'captures' is a hash table mapping teams/type pairs to number of captures
-;; Ex. (caps (cons WHITE PAWN)) => 2
-;;     (caps (cons BLACK KING)) => nil
+;; 'captures' is a hash table mapping [team type] to number of captures
+;; Ex. (caps [WHITE PAWN]) => 2
+;;     (caps [BLACK KING]) => nil
 ;; Use 0 as a default value to get an accurate count when none are captured
-;;     (caps (cons BLACK KING) 0) => 0
+;;     (caps [BLACK KING] 0) => 0
 (defrecord GameState [board captures])
 
 (defrecord Move [from to])
@@ -43,7 +43,7 @@
   (let [start-x (x-xform (:x start))
         start-y (y-xform (:y start))]
     (loop [pos (Coord. start-x start-y)
-           out []]
+           out '()]
       (let [piece (board pos)]
         (cond
           ;; Terminate if pos is off board, or has same team's piece.
@@ -103,16 +103,18 @@
        (let [dir (if (= team WHITE) -1 1)
              fwd1 (let [c (Coord. px (+ dir py))]
                     (if (board c) nil (list c)))
-             fwd2 (and (not moved?)
-                       fwd1
-                       (let [c (Coord. px (+ dir dir py))]
-                         (if (board c) nil (list c))))
+             fwd2 (if (and (not moved?) fwd1)
+                    (let [c (Coord. px (+ dir dir py))]
+                      (if (board c) nil (list c)))
+                    nil)
              ldiag (let [c (Coord. (- px 1) (+ dir py))
                          p (board c)]
-                     (and p (not (= (:team p) team)) (list c)))
+                     (if (and p (not (= (:team p) team)))
+                       (list c) nil))
              rdiag (let [c (Coord. (+ px 1) (+ dir py))
                          p (board c)]
-                     (and p (not (= (:team p) team)) (list c)))]
+                     (if (and p (not (= (:team p) team)))
+                       (list c) nil))]
          (concat fwd1 fwd2 ldiag rdiag))
        (= type ROOK)
        (accum-straight board team coord)
@@ -135,7 +137,7 @@
        (concat (accum-straight board team coord)
                (accum-diagonal board team coord))))))
 
-(defn apply-move-to-board [board {to :to from :from}]
+(defn apply-move-to-board [board {from :from to :to}]
   (let [{team :team type :type moved? :moved? :as piece} (board from)
         move-piece (if moved? piece (Piece. team type true))
         cap-piece (board to)]
@@ -153,7 +155,7 @@
      new-board
      (if cap-piece
        (let [{team :team type :type} cap-piece
-             team+type (cons team type)]
+             team+type [team type]]
          (assoc caps team+type (inc (caps team+type 0))))
        caps))))
 
