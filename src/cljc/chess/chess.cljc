@@ -43,7 +43,7 @@
   (let [start-x (x-xform (:x start))
         start-y (y-xform (:y start))]
     (loop [pos (Coord. start-x start-y)
-           out '()]
+           out []]
       (let [piece (board pos)]
         (cond
           ;; Terminate if pos is off board, or has same team's piece.
@@ -52,12 +52,12 @@
           out
           ;; Terminate with current tile if pos has other team's piece.
           piece
-          (conj pos out)
+          (conj out pos)
           ;; Otherwise keep searching
           :else
           (let [new-x (x-xform (:x pos))
                 new-y (y-xform (:y pos))]
-            (recur (Coord. new-x new-y) (conj pos out))))))))
+            (recur (Coord. new-x new-y) (conj out pos))))))))
 
 (defn add1 [x] (+ x 1))
 (defn sub1 [x] (- x 1))
@@ -161,9 +161,8 @@
 
 (defn winner [game]
   (let [caps (:captures game)]
-    (cond (caps (cons BLACK KING)) WHITE
-          (caps (cons WHITE KING)) BLACK
-          :else nil)))
+    (cond (caps [BLACK KING]) WHITE
+          (caps [WHITE KING]) BLACK)))
 
 (defn find-king [board team]
   (loop [board (seq board)]
