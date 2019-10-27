@@ -159,10 +159,9 @@
          (assoc caps team+type (inc (caps team+type 0))))
        caps))))
 
-(defn winner [game]
-  (let [caps (:captures game)]
-    (cond (caps [BLACK KING]) WHITE
-          (caps [WHITE KING]) BLACK)))
+(defn winner [caps]
+  (cond (caps [BLACK KING]) WHITE
+        (caps [WHITE KING]) BLACK))
 
 (defn find-king [board team]
   (loop [board (seq board)]
@@ -183,21 +182,25 @@
   (cond (= team WHITE) BLACK
         (= team BLACK) WHITE))
 
+(defn team->string [team]
+  (cond (= team WHITE) "white"
+        (= team BLACK) "black"))
+
 (defn check? [board team]
   (let [king (find-king board team)
         enemy (find-team board (other-team team))
         moves (flatten (map #(valid-moves board %1) enemy))]
-    (loop [moves moves]
-      (let [{to :to} (first moves)]
-        (cond (empty? moves) false
-              (= king to) true
-              :else (recur (rest moves)))))))
+    (loop [m moves]
+      (cond (empty? m) false
+            (= king (first m)) true
+            :else (recur (rest m))))))
 
 (defn check-mate? [board team]
   (let [friends (find-team board team)
-        moves (flatten (map valid-moves friends))
-        futures (map apply-move-to-board* moves)]
-    (reduce #(or %1 %2) false (map check? futures))))
+        moves (flatten (map #(map (fn [to] (Move. %1 to)) (valid-moves board %1)) friends))
+        futures (map #(apply-move-to-board* board %1) moves)]
+    ;; if all future moves put us in check, then we've been checkmated
+    (reduce #(and %1 %2) (map #(check? %1 team) futures))))
 
 (def wpawn (Piece. WHITE PAWN false))
 (def wrook (Piece. WHITE ROOK false))

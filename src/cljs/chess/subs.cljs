@@ -36,3 +36,8 @@
  ::message
  (fn [db]
    (:message db)))
+
+(re-frame/reg-sub
+ ::gameover
+ (fn [db]
+   (:gameover db)))

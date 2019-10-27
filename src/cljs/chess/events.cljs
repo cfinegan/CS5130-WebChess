@@ -16,6 +16,7 @@
  (fn [cofx [_ x y]]
    (let [history (re-frame/subscribe [::subs/history])
          selection (re-frame/subscribe [::subs/selection])
+         gameover (re-frame/subscribe [::subs/gameover])
          game (last @history)
          board (:board game)
          caps (:captures game)
@@ -27,20 +28,37 @@
      ;; a piece is not selected (and thus the intent is to select it).
      ;; This may improve readability.
      (cond
+       @gameover
+       {:db (:db cofx)}
        ;; If a piece is selected, this click is to move it
        @selection
        (let [moves (chess/valid-moves board @selection)]
          (if (some #(= pos %) moves)
-           (let [new-game (chess/apply-move game (chess/->Move @selection pos))]
-             {:db (assoc (:db cofx)
-                         :history (conj @history new-game)
-                         :selection nil
-                         :message "the move is valid!")})
+           (let [new-game (chess/apply-move game (chess/->Move @selection pos))
+                 otherteam (chess/other-team team)
+                 winner (chess/winner (:captures new-game))
+                 checkmate (chess/check-mate? (:board new-game) otherteam)]
+             (if (or (= winner team) checkmate)
+               {:db (assoc (:db cofx)
+                           :history (conj @history new-game)
+                           :selection nil
+                           :gameover true
+                           :message (str (chess/team->string team)
+                                         " is the winner"
+                                         (if checkmate " (checkmate)" "")))}
+               {:db (assoc (:db cofx)
+                           :history (conj @history new-game)
+                           :selection nil
+                           :message (str "the move is valid"
+                                         (cond (chess/check? (:board new-game) otherteam)
+                                               (str " and " (chess/team->string otherteam) " is in check")
+                                               (chess/check? (:board new-game) team)
+                                               (str " and " (chess/team->string team) " is in check")
+                                               :else "")))}))
            (if (= @selection pos)
              {:db (assoc (:db cofx)
                          :history @history
-                         :selection nil
-                         :message "unselecting the piece")}
+                         :selection nil)}
              {:db (assoc (:db cofx) :message "the move isn't valid")})))
        ;; Else if click was an empty space, or an enemy piece, show error
        (not piece)
@@ -51,7 +69,10 @@
        (not @selection)
        {:db (assoc (:db cofx)
                    :selection pos
-                   :message "select a destination")}
+                   :message (str "select a destination"
+                                 (if (chess/check? board team)
+                                   " (you are in check!)"
+                                   "")))}
        ;; Base case shows error for debugging
        :else
        {:db (assoc (:db cofx) :message "board-click is in an unknown state!")}))))
