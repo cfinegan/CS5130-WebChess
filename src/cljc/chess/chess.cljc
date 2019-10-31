@@ -189,7 +189,9 @@
         castle? (and (board to)
                      (= (:type (board from)) KING)
                      (= (:type (board to)) ROOK)
-                     (= (:team (board from)) (:team (board to))))]
+                     (= (:team (board from)) (:team (board to)))
+                     (not (:moved? (board from))) ;; we already check this in valid-moves
+                     (not (:moved? (board to))))] ;; but it doesn't hurt to verify again
     (if castle?
       (let [new-rook-piece (Piece. team ROOK true)
             new-rook-pos (if (< (:x to) 4) ;; queen's side
