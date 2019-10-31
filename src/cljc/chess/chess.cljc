@@ -90,6 +90,9 @@
 (def king-moves
   (filter not-zero? (map list->Coord (combo/selections [1 0 -1] 2))))
 
+(declare find-team)
+(declare other-team)
+
 ;; TODO: Right now, this assumes that a piece actually exists
 ;; at 'coord'. We should probably return some bottom value
 ;; when the piece doesn't exist, distinct from '() since '()
@@ -116,23 +119,66 @@
                      (if (and p (not (= (:team p) team)))
                        (list c) nil))]
          (concat fwd1 fwd2 ldiag rdiag))
+       
        (= type ROOK)
        (accum-straight board team coord)
+       
        (= type BISHOP)
        (accum-diagonal board team coord)
+       
        (= type KNIGHT)
        (for [{x :x y :y} knight-moves
              :let [coord* (Coord. (+ x px) (+ y py))
                    piece* (board coord*)]
              :when (not (and piece* (= team (:team piece*))))]
          coord*)
+       
        (= type KING)
-       ;; TODO: Logic for castling goes here? Or somewhere else?
-       (for [{x :x y :y} king-moves
-             :let [coord* (Coord. (+ x px) (+ y py))
-                   piece* (board coord*)]
-             :when (not (and piece* (= team (:team piece*))))]
-         coord*)
+       (let [enemy (filter #(not (= (:type (board %)) KING)) (find-team board (other-team team)))
+             enemy-king* (filter #(= (:type (board %)) KING) (find-team board (other-team team)))
+             enemy-moves (concat
+                          (flatten (map #(valid-moves board %) enemy))
+                          (if (not (empty? enemy-king*))
+                            (let [enemy-king (first enemy-king*)]
+                              (for [{x :x y :y} king-moves
+                                    :let [coord* (Coord. (+ x (:x enemy-king)) (+ y (:y enemy-king)))
+                                          piece* (board coord*)]
+                                    :when (not (and piece* (= (other-team team) (:team piece*))))]
+                                coord*))
+                            nil))
+             in-check? (loop [m enemy-moves]
+                         (cond (empty? m) false
+                               (= coord (first m)) true
+                               :else (recur (rest m))))
+             regular-moves (for [{x :x y :y} king-moves
+                                 :let [coord* (Coord. (+ x px) (+ y py))
+                                       piece* (board coord*)]
+                                 :when (not (and piece* (= team (:team piece*))))]
+                             coord*)]
+         (if (and (not in-check?)
+                  (not moved?))
+           (let [unmoved-rooks (filter #(and (= (:type (board %)) ROOK) (not (:moved? (board %)))) (find-team board team))]
+             (if (not (empty? unmoved-rooks))
+               (let [l-rook (filter #(= (:x %) 0) unmoved-rooks)
+                     r-rook (filter #(= (:x %) 7) unmoved-rooks)
+                     l-accum (accum-tiles sub1 stay board team coord)
+                     r-accum (accum-tiles add1 stay board team coord)
+                     l-castle (if (and (not (empty? l-rook))
+                                       (not (empty? l-accum))
+                                       (some #(= (Coord. (+ (:x (first l-rook)) 1) (:y (first l-rook))) %)
+                                             l-accum)
+                                       (not (some (fn [p1] (some (fn [p2] (= p1 p2)) l-accum)) enemy-moves)))
+                                l-rook nil)
+                     r-castle (if (and (not (empty? r-rook))
+                                       (not (empty? r-accum))
+                                       (some #(= (Coord. (- (:x (first r-rook)) 1) (:y (first r-rook))) %)
+                                             r-accum)
+                                       (not (some (fn [p1] (some (fn [p2] (= p1 p2)) r-accum)) enemy-moves)))
+                                r-rook nil)]
+                 (concat regular-moves l-castle r-castle))
+               regular-moves))
+           regular-moves))
+
        (= type QUEEN)
        (concat (accum-straight board team coord)
                (accum-diagonal board team coord))))))
@@ -140,12 +186,29 @@
 (defn apply-move-to-board [board {from :from to :to}]
   (let [{team :team type :type moved? :moved? :as piece} (board from)
         move-piece (if moved? piece (Piece. team type true))
-        cap-piece (board to)]
-    [(-> board
-         (dissoc from)
-         (assoc to move-piece))
-     cap-piece]))
-
+        castle? (and (board to)
+                     (= (:type (board from)) KING)
+                     (= (:type (board to)) ROOK)
+                     (= (:team (board from)) (:team (board to))))]
+    (if castle?
+      (let [new-rook-piece (Piece. team ROOK true)
+            new-rook-pos (if (< (:x to) 4) ;; queen's side
+                           (Coord. 3 (:y to))
+                           (Coord. 5 (:y to)))
+            new-king-pos (if (< (:x to) 4)
+                           (Coord. 2 (:y to))
+                           (Coord. 6 (:y to)))]
+        [(-> board
+             (dissoc from)
+             (dissoc to)
+             (assoc new-rook-pos new-rook-piece)
+             (assoc new-king-pos move-piece))
+         nil])
+      [(-> board
+           (dissoc from)
+           (assoc to move-piece))
+       (board to)])))
+      
 (defn apply-move-to-board* [board move]
   (first (apply-move-to-board board move)))
 
