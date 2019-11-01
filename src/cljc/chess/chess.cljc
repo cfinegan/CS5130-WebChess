@@ -189,37 +189,37 @@
                                                  (not (:moved? (board %))))
                                            (find-team board team))]
                  (if (not (empty? unmoved-rooks))
-                   (let [l-rook (filter #(= (:x %) 0) unmoved-rooks)
-                         r-rook (filter #(= (:x %) 7) unmoved-rooks)
+                   (let [l-rook (first (filter #(= (:x %) 0) unmoved-rooks))
+                         r-rook (first (filter #(= (:x %) 7) unmoved-rooks))
                          l-accum (accum-tiles sub1 stay board team coord)
                          r-accum (accum-tiles add1 stay board team coord)
-                         l-castle (if (and (not (empty? l-rook))
+                         l-castle (if (and l-rook
                                            (not (empty? l-accum))
-                                           (some #(= (Coord.
-                                                      (+ (:x (first l-rook)) 1)
-                                                      (:y (first l-rook))) %)
+                                           (some #(= (Coord. (+ (:x l-rook) 1)
+                                                             (:y l-rook))
+                                                     %)
                                                  l-accum)
                                            (not (some (fn [p1]
                                                         (some (fn [p2]
                                                                 (= p1 p2))
                                                               l-accum))
                                                       enemy-moves)))
-                                    (list (Coord. (+ (:x (first l-rook)) 2)
-                                                  (:y (first l-rook))))
+                                    (list (Coord. (+ (:x l-rook) 2)
+                                                  (:y l-rook)))
                                     nil)
-                         r-castle (if (and (not (empty? r-rook))
+                         r-castle (if (and r-rook
                                            (not (empty? r-accum))
-                                           (some #(= (Coord.
-                                                      (- (:x (first r-rook)) 1)
-                                                      (:y (first r-rook))) %)
+                                           (some #(= (Coord. (- (:x r-rook) 1)
+                                                             (:y r-rook))
+                                                     %)
                                                  r-accum)
                                            (not (some (fn [p1]
                                                         (some (fn [p2]
                                                                 (= p1 p2))
                                                               r-accum))
                                                       enemy-moves)))
-                                    (list (Coord. (- (:x (first r-rook)) 1)
-                                                  (:y (first r-rook))))
+                                    (list (Coord. (- (:x r-rook) 1)
+                                                  (:y r-rook)))
                                     nil)]
                      (concat regular-moves l-castle r-castle))
                    regular-moves))
