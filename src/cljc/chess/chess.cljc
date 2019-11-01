@@ -134,16 +134,21 @@
          coord*)
        
        (= type KING)
-       (let [enemy (filter #(not (= (:type (board %)) KING)) (find-team board (other-team team)))
-             enemy-king* (filter #(= (:type (board %)) KING) (find-team board (other-team team)))
+       (let [enemy (filter #(not (= (:type (board %)) KING))
+                           (find-team board (other-team team)))
+             enemy-king* (filter #(= (:type (board %)) KING)
+                                 (find-team board (other-team team)))
              enemy-moves (concat
                           (flatten (map #(valid-moves board %) enemy))
                           (if (not (empty? enemy-king*))
                             (let [enemy-king (first enemy-king*)]
                               (for [{x :x y :y} king-moves
-                                    :let [coord* (Coord. (+ x (:x enemy-king)) (+ y (:y enemy-king)))
+                                    :let [coord* (Coord. (+ x (:x enemy-king))
+                                                         (+ y (:y enemy-king)))
                                           piece* (board coord*)]
-                                    :when (not (and piece* (= (other-team team) (:team piece*))))]
+                                    :when (not (and piece*
+                                                    (= (other-team team)
+                                                       (:team piece*))))]
                                 coord*))
                             nil))
              in-check? (loop [m enemy-moves]
@@ -157,7 +162,9 @@
                              coord*)]
          (if (and (not in-check?)
                   (not moved?))
-           (let [unmoved-rooks (filter #(and (= (:type (board %)) ROOK) (not (:moved? (board %)))) (find-team board team))]
+           (let [unmoved-rooks (filter #(and (= (:type (board %)) ROOK)
+                                             (not (:moved? (board %))))
+                                       (find-team board team))]
              (if (not (empty? unmoved-rooks))
                (let [l-rook (filter #(= (:x %) 0) unmoved-rooks)
                      r-rook (filter #(= (:x %) 7) unmoved-rooks)
@@ -165,15 +172,23 @@
                      r-accum (accum-tiles add1 stay board team coord)
                      l-castle (if (and (not (empty? l-rook))
                                        (not (empty? l-accum))
-                                       (some #(= (Coord. (+ (:x (first l-rook)) 1) (:y (first l-rook))) %)
+                                       (some #(= (Coord. (+ (:x (first l-rook)) 1)
+                                                         (:y (first l-rook))) %)
                                              l-accum)
-                                       (not (some (fn [p1] (some (fn [p2] (= p1 p2)) l-accum)) enemy-moves)))
+                                       (not (some (fn [p1]
+                                                    (some (fn [p2]
+                                                            (= p1 p2)) l-accum))
+                                                  enemy-moves)))
                                 l-rook nil)
                      r-castle (if (and (not (empty? r-rook))
                                        (not (empty? r-accum))
-                                       (some #(= (Coord. (- (:x (first r-rook)) 1) (:y (first r-rook))) %)
+                                       (some #(= (Coord. (- (:x (first r-rook)) 1)
+                                                         (:y (first r-rook))) %)
                                              r-accum)
-                                       (not (some (fn [p1] (some (fn [p2] (= p1 p2)) r-accum)) enemy-moves)))
+                                       (not (some (fn [p1]
+                                                    (some (fn [p2]
+                                                            (= p1 p2)) r-accum))
+                                                  enemy-moves)))
                                 r-rook nil)]
                  (concat regular-moves l-castle r-castle))
                regular-moves))
