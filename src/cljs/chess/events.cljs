@@ -32,12 +32,14 @@
        {:db (:db cofx)}
        ;; If a piece is selected, this click is to move it
        @selection
-       (let [moves (chess/valid-moves board @selection)]
+       (let [moves (chess/valid-moves board @selection @history true)]
          (if (some #(= pos %) moves)
            (let [new-game (chess/apply-move game (chess/->Move @selection pos))
                  otherteam (chess/other-team team)
                  winner (chess/winner (:captures new-game))
-                 checkmate (chess/check-mate? (:board new-game) otherteam)]
+                 checkmate (chess/check-mate? new-game
+                                              otherteam
+                                              (conj @history new-game))]
              (if (or (= winner team) checkmate)
                {:db (assoc (:db cofx)
                            :history (conj @history new-game)
@@ -50,10 +52,21 @@
                            :history (conj @history new-game)
                            :selection nil
                            :message (str "the move is valid"
-                                         (cond (chess/check? (:board new-game) otherteam)
-                                               (str " and " (chess/team->string otherteam) " is in check")
-                                               (chess/check? (:board new-game) team)
-                                               (str " and " (chess/team->string team) " is in check")
+                                         (cond (chess/check?
+                                                new-game
+                                                otherteam
+                                                (conj @history new-game))
+                                               (str " and "
+                                                    (chess/team->string
+                                                     otherteam)
+                                                    " is in check")
+                                               (chess/check?
+                                                new-game
+                                                team
+                                                (conj @history new-game))
+                                               (str " and "
+                                                    (chess/team->string team)
+                                                    " is in check")
                                                :else "")))}))
            (if (= @selection pos)
              {:db (assoc (:db cofx)
@@ -70,9 +83,8 @@
        {:db (assoc (:db cofx)
                    :selection pos
                    :message (str "select a destination"
-                                 (if (chess/check? board team)
-                                   " (you are in check!)"
-                                   "")))}
+                                 (if (chess/check? game team @history)
+                                   " (you are in check!)" "")))}
        ;; Base case shows error for debugging
        :else
        {:db (assoc (:db cofx) :message "board-click is in an unknown state!")}))))

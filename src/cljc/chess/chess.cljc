@@ -79,8 +79,10 @@
 
 (defn list->Coord [lst]
   (Coord. (first lst) (second lst)))
+
 (defn abs-not-equal? [coord]
   (not (= (abs (:x coord)) (abs (:y coord)))))
+
 (defn not-zero? [coord]
   (not (and (= 0 (:x coord)) (= 0 (:y coord)))))
 
@@ -97,7 +99,7 @@
 ;; at 'coord'. We should probably return some bottom value
 ;; when the piece doesn't exist, distinct from '() since '()
 ;; is also returned when the piece exists but has no valid moves.
-(defn valid-moves [board {px :x py :y :as coord}]
+(defn valid-moves [board {px :x py :y :as coord} history check-castle?]
   (let [{team :team type :type moved? :moved? :as piece} (board coord)]
     (filter
      valid-coord?
@@ -117,8 +119,42 @@
              rdiag (let [c (Coord. (+ px 1) (+ dir py))
                          p (board c)]
                      (if (and p (not (= (:team p) team)))
-                       (list c) nil))]
-         (concat fwd1 fwd2 ldiag rdiag))
+                       (list c) nil))
+             regular-moves (concat fwd1 fwd2 ldiag rdiag)
+             fifth-rank? (if (= team WHITE) (= py 3) (= py 4))] 
+         (if fifth-rank?
+           (let [adj-left-pos (Coord. (- px 1) py)
+                 adj-right-pos (Coord. (+ px 1) py)
+                 adj-left (board adj-left-pos)
+                 adj-right (board adj-right-pos)
+                 old-board (:board (last (pop history)))
+                 pawn-left? (and adj-left
+                                 (= (:type adj-left) PAWN)
+                                 (= (:team adj-left) (other-team team))
+                                 (let [orig-pos (if (= (:team adj-left) WHITE)
+                                                  (Coord. (- px 1) 6)
+                                                  (Coord. (- px 1) 1))]
+                                   (and (not (board orig-pos))
+                                        (old-board orig-pos)
+                                        (= (:type (old-board orig-pos)) PAWN)
+                                        (not (:moved? (old-board orig-pos))))))
+                 pawn-right? (and adj-right
+                                  (= (:type adj-right) PAWN)
+                                  (= (:team adj-right) (other-team team))
+                                  (let [orig-pos (if (= (:team adj-right) WHITE)
+                                                   (Coord. (+ px 1) 6)
+                                                   (Coord. (+ px 1) 1))]
+                                    (and (not (board orig-pos))
+                                         (old-board orig-pos)
+                                         (= (:type (old-board orig-pos)) PAWN)
+                                         (not (:moved? (old-board orig-pos))))))
+                 new-y (if (= team WHITE) (- py 1) (+ py 1))
+                 en-passant-left (if pawn-left?
+                                   (list (Coord. (- px 1) new-y)) nil)
+                 en-passant-right (if pawn-right?
+                                    (list (Coord. (+ px 1) new-y)) nil)]
+             (concat regular-moves en-passant-left en-passant-right))
+           regular-moves))
        
        (= type ROOK)
        (accum-straight board team coord)
@@ -134,63 +170,59 @@
          coord*)
        
        (= type KING)
-       (let [enemy (filter #(not (= (:type (board %)) KING))
-                           (find-team board (other-team team)))
-             enemy-king* (filter #(= (:type (board %)) KING)
-                                 (find-team board (other-team team)))
-             enemy-moves (concat
-                          (flatten (map #(valid-moves board %) enemy))
-                          (if (not (empty? enemy-king*))
-                            (let [enemy-king (first enemy-king*)]
-                              (for [{x :x y :y} king-moves
-                                    :let [coord* (Coord. (+ x (:x enemy-king))
-                                                         (+ y (:y enemy-king)))
-                                          piece* (board coord*)]
-                                    :when (not (and piece*
-                                                    (= (other-team team)
-                                                       (:team piece*))))]
-                                coord*))
-                            nil))
-             in-check? (loop [m enemy-moves]
-                         (cond (empty? m) false
-                               (= coord (first m)) true
-                               :else (recur (rest m))))
-             regular-moves (for [{x :x y :y} king-moves
+       (let [regular-moves (for [{x :x y :y} king-moves
                                  :let [coord* (Coord. (+ x px) (+ y py))
                                        piece* (board coord*)]
-                                 :when (not (and piece* (= team (:team piece*))))]
+                                 :when (not (and piece*
+                                                 (= team (:team piece*))))]
                              coord*)]
-         (if (and (not in-check?)
-                  (not moved?))
-           (let [unmoved-rooks (filter #(and (= (:type (board %)) ROOK)
-                                             (not (:moved? (board %))))
-                                       (find-team board team))]
-             (if (not (empty? unmoved-rooks))
-               (let [l-rook (filter #(= (:x %) 0) unmoved-rooks)
-                     r-rook (filter #(= (:x %) 7) unmoved-rooks)
-                     l-accum (accum-tiles sub1 stay board team coord)
-                     r-accum (accum-tiles add1 stay board team coord)
-                     l-castle (if (and (not (empty? l-rook))
-                                       (not (empty? l-accum))
-                                       (some #(= (Coord. (+ (:x (first l-rook)) 1)
-                                                         (:y (first l-rook))) %)
-                                             l-accum)
-                                       (not (some (fn [p1]
-                                                    (some (fn [p2]
-                                                            (= p1 p2)) l-accum))
-                                                  enemy-moves)))
-                                l-rook nil)
-                     r-castle (if (and (not (empty? r-rook))
-                                       (not (empty? r-accum))
-                                       (some #(= (Coord. (- (:x (first r-rook)) 1)
-                                                         (:y (first r-rook))) %)
-                                             r-accum)
-                                       (not (some (fn [p1]
-                                                    (some (fn [p2]
-                                                            (= p1 p2)) r-accum))
-                                                  enemy-moves)))
-                                r-rook nil)]
-                 (concat regular-moves l-castle r-castle))
+         (if check-castle?
+           (let [enemy (find-team board (other-team team))
+                 enemy-moves (flatten
+                              (map #(valid-moves board % history false) enemy))
+                 in-check? (loop [m enemy-moves]
+                             (cond (empty? m) false
+                                   (= coord (first m)) true
+                                   :else (recur (rest m))))]
+             (if (and (not in-check?) (not moved?))
+               (let [unmoved-rooks (filter #(and (= (:type (board %)) ROOK)
+                                                 (not (:moved? (board %))))
+                                           (find-team board team))]
+                 (if (not (empty? unmoved-rooks))
+                   (let [l-rook (filter #(= (:x %) 0) unmoved-rooks)
+                         r-rook (filter #(= (:x %) 7) unmoved-rooks)
+                         l-accum (accum-tiles sub1 stay board team coord)
+                         r-accum (accum-tiles add1 stay board team coord)
+                         l-castle (if (and (not (empty? l-rook))
+                                           (not (empty? l-accum))
+                                           (some #(= (Coord.
+                                                      (+ (:x (first l-rook)) 1)
+                                                      (:y (first l-rook))) %)
+                                                 l-accum)
+                                           (not (some (fn [p1]
+                                                        (some (fn [p2]
+                                                                (= p1 p2))
+                                                              l-accum))
+                                                      enemy-moves)))
+                                    (list (Coord. (+ (:x (first l-rook)) 2)
+                                                  (:y (first l-rook))))
+                                    nil)
+                         r-castle (if (and (not (empty? r-rook))
+                                           (not (empty? r-accum))
+                                           (some #(= (Coord.
+                                                      (- (:x (first r-rook)) 1)
+                                                      (:y (first r-rook))) %)
+                                                 r-accum)
+                                           (not (some (fn [p1]
+                                                        (some (fn [p2]
+                                                                (= p1 p2))
+                                                              r-accum))
+                                                      enemy-moves)))
+                                    (list (Coord. (- (:x (first r-rook)) 1)
+                                                  (:y (first r-rook))))
+                                    nil)]
+                     (concat regular-moves l-castle r-castle))
+                   regular-moves))
                regular-moves))
            regular-moves))
 
@@ -201,14 +233,19 @@
 (defn apply-move-to-board [board {from :from to :to}]
   (let [{team :team type :type moved? :moved? :as piece} (board from)
         move-piece (if moved? piece (Piece. team type true))
-        castle? (and (board to)
-                     (= (:type (board from)) KING)
-                     (= (:type (board to)) ROOK)
-                     (= (:team (board from)) (:team (board to)))
-                     (not (:moved? (board from))) ;; we already check this in valid-moves
-                     (not (:moved? (board to))))] ;; but it doesn't hurt to verify again
-    (if castle?
-      (let [new-rook-piece (Piece. team ROOK true)
+        castle? (and (= (:type (board from)) KING)
+                     (= (:y from) (:y to))
+                     (> (abs (- (:x to) (:x from))) 1))
+        en-passant? (and (= (:type (board from)) PAWN)
+                         (= (abs (- (:x to) (:x from))) 1)
+                         (= (abs (- (:y to) (:y from))) 1)
+                         (not (board to)))]
+    (cond
+      castle?
+      (let [old-rook-pos (if (< (:x to) 4)
+                           (Coord. 0 (:y to))
+                           (Coord. 7 (:y to)))
+            new-rook-piece (Piece. team ROOK true)
             new-rook-pos (if (< (:x to) 4) ;; queen's side
                            (Coord. 3 (:y to))
                            (Coord. 5 (:y to)))
@@ -217,10 +254,20 @@
                            (Coord. 6 (:y to)))]
         [(-> board
              (dissoc from)
-             (dissoc to)
+             (dissoc old-rook-pos)
              (assoc new-rook-pos new-rook-piece)
              (assoc new-king-pos move-piece))
          nil])
+
+      en-passant?
+      (let [captured-pawn-pos (Coord. (:x to) (:y from))]
+        [(-> board
+             (dissoc from)
+             (dissoc captured-pawn-pos)
+             (assoc to move-piece))
+         (board captured-pawn-pos)])
+        
+      :else
       [(-> board
            (dissoc from)
            (assoc to move-piece))
@@ -229,7 +276,8 @@
 (defn apply-move-to-board* [board move]
   (first (apply-move-to-board board move)))
 
-(defn apply-move [{board :board caps :captures} {from :from to :to :as move}]
+(defn apply-move [{board :board caps :captures}
+                  {from :from to :to :as move}]
   (let [[new-board cap-piece] (apply-move-to-board board move)]
     (GameState.
      new-board
@@ -266,21 +314,30 @@
   (cond (= team WHITE) "white"
         (= team BLACK) "black"))
 
-(defn check? [board team]
+(defn check? [{board :board caps :captures :as game}
+              team
+              history]
   (let [king (find-king board team)
         enemy (find-team board (other-team team))
-        moves (flatten (map #(valid-moves board %1) enemy))]
+        moves (flatten
+               (map #(valid-moves board % history true) enemy))]
     (loop [m moves]
       (cond (empty? m) false
             (= king (first m)) true
             :else (recur (rest m))))))
 
-(defn check-mate? [board team]
+(defn check-mate? [{board :board caps :captures :as game}
+                   team
+                   history]
   (let [friends (find-team board team)
-        moves (flatten (map #(map (fn [to] (Move. %1 to)) (valid-moves board %1)) friends))
-        futures (map #(apply-move-to-board* board %1) moves)]
-    ;; if all future moves put us in check, then we've been checkmated
-    (reduce #(and %1 %2) (map #(check? %1 team) futures))))
+        moves (flatten
+               (map #(map (fn [to] (Move. % to))
+                          (valid-moves board % history true))
+                    friends))
+        futures (map #(apply-move game %) moves)]
+    (reduce #(and %1 %2)
+            (map #(check? % team (conj history %))
+                 futures))))
 
 (def wpawn (Piece. WHITE PAWN false))
 (def wrook (Piece. WHITE ROOK false))

@@ -25,7 +25,9 @@
 (defn board-panel []
   (let [board (re-frame/subscribe [::subs/board])
         selection (re-frame/subscribe [::subs/selection])
-        moves (and @selection (chess/valid-moves @board @selection))]
+        history (re-frame/subscribe [::subs/history])
+        moves (and @selection
+                   (chess/valid-moves @board @selection @history true))]
     [:div
      [:table {:border 1
               :style  {:table-layout "fixed"
