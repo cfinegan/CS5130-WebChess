@@ -26,10 +26,10 @@
    (let [history (re-frame/subscribe [::subs/history])
          selection (re-frame/subscribe [::subs/selection])
          gameover (re-frame/subscribe [::subs/gameover])
+         team @(re-frame/subscribe [::subs/active-team])
          game (last @history)
          board (:board game)
          caps (:captures game)
-         team (if (= 0 (mod (count @history) 2)) chess/BLACK chess/WHITE)
          pos (chess/->Coord x y)
          piece (board pos)]
      ;; TODO: Maybe break this cond out into different functions for when

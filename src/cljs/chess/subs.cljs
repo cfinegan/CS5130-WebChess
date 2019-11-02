@@ -1,6 +1,7 @@
 (ns chess.subs
   (:require
-   [re-frame.core :as re-frame]))
+   [re-frame.core :as re-frame]
+   [chess.chess :as chess]))
 
 (re-frame/reg-sub
  ::history
@@ -36,3 +37,10 @@
  ::gameover
  (fn [db]
    (:gameover db)))
+
+(re-frame/reg-sub
+ ::active-team
+ (fn [db]
+   (if (= 0 (mod (count (:history db)) 2))
+     chess/BLACK
+     chess/WHITE)))

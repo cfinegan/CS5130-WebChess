@@ -64,10 +64,16 @@
     [:div [:button {:on-click on-undo-click
                     :disabled (<= (count @history) 1)} "undo"]]))
 
+(defn whos-turn-panel []
+  (let [team @(re-frame/subscribe [::subs/active-team])]
+    [:div "it's " (chess/team->string team) "'s turn"]))
+
 (defn main-panel []
   [:div
    (message-panel)
    [:br]
    (board-panel)
    [:br]
-   (undo-button)])
+   (undo-button)
+   [:br]
+   (whos-turn-panel)])
