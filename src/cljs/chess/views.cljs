@@ -54,9 +54,20 @@
 (defn message-panel []
   (let [msg (re-frame/subscribe [::subs/message])]
     [:div @msg]))
-      
+
+(defn on-undo-click [e]
+  (.preventDefault e)
+  (re-frame/dispatch [:undo-click]))
+
+(defn undo-button []
+  (let [history (re-frame/subscribe [::subs/history])]
+    [:div [:button {:on-click on-undo-click
+                    :disabled (<= (count @history) 1)} "undo"]]))
+
 (defn main-panel []
   [:div
    (message-panel)
    [:br]
-   (board-panel)])
+   (board-panel)
+   [:br]
+   (undo-button)])

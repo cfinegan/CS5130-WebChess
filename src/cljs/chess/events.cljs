@@ -12,6 +12,15 @@
    db/default-db))
 
 (re-frame/reg-event-fx
+ :undo-click
+ (fn [cofx _]
+   (let [history (re-frame/subscribe [::subs/history])
+         len (count @history)]
+     (if (> len 1)
+       {:db (assoc (:db cofx) :history (pop @history))}
+       (throw (js/Error. "Cannot undo board in starting position."))))))
+
+(re-frame/reg-event-fx
  :board-click
  (fn [cofx [_ x y]]
    (let [history (re-frame/subscribe [::subs/history])
