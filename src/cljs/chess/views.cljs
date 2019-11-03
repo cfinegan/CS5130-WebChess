@@ -29,7 +29,6 @@
         history (re-frame/subscribe [::subs/history])
         moves (and @selection
                    (chess/valid-moves @board @selection @history true))]
-    (println last-move)
     [:div
      [:table {:border 1
               :style  {:table-layout "fixed"
