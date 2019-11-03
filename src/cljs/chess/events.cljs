@@ -17,7 +17,9 @@
    (let [history (re-frame/subscribe [::subs/history])
          len (count @history)]
      (if (> len 1)
-       {:db (assoc (:db cofx) :history (pop @history))}
+       {:db (assoc (:db cofx)
+                   :history (pop @history)
+                   :selection nil)}
        (throw (js/Error. "Cannot undo board in starting position."))))))
 
 (re-frame/reg-event-fx
