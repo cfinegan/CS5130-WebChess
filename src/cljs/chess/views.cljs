@@ -24,10 +24,12 @@
 
 (defn board-panel []
   (let [board (re-frame/subscribe [::subs/board])
+        last-move (re-frame/subscribe [::subs/last-move])
         selection (re-frame/subscribe [::subs/selection])
         history (re-frame/subscribe [::subs/history])
         moves (and @selection
                    (chess/valid-moves @board @selection @history true))]
+    (println last-move)
     [:div
      [:table {:border 1
               :style  {:table-layout "fixed"
@@ -40,8 +42,13 @@
               ~@(forv [j (range 8)]
                   (let [pos (chess/->Coord j i)
                         piece (@board pos)
-                        bg (cond (= pos @selection) "#cccccc"
-                                 (and moves (some #(= pos %) moves)) "blue")]
+                        bg (cond (= pos @selection) "green"
+                                 (and moves (some #(= pos %) moves)) "blue"
+                                 (and @last-move
+                                      (let [{fx :x fy :y} (:from @last-move)
+                                            {tx :x ty :y} (:to @last-move)]
+                                        (or (and (= fx j) (= fy i))
+                                            (and (= tx j) (= ty i))))) "#cccccc")]
                     (if piece
                       [:td {:on-click (make-on-click j i)
                             :style {:background-color bg}}

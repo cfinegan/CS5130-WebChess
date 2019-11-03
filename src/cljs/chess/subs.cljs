@@ -44,3 +44,8 @@
    (if (= 0 (mod (count (:history db)) 2))
      chess/BLACK
      chess/WHITE)))
+
+(re-frame/reg-sub
+ ::last-move
+ (fn [db]
+   (:last-move (last (:history db)))))
