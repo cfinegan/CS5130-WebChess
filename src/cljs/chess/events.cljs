@@ -45,9 +45,9 @@
        @selection
        (let [moves (chess/valid-moves board @selection @history true)]
          (if (some #(= pos %) moves)
-           (let [new-game (assoc
-                           (chess/apply-move game (chess/->Move @selection pos))
-                           :last-move (chess/->Move @selection pos))
+           (let [move (chess/->Move @selection pos)
+                 new-game (assoc (chess/apply-move game move)
+                                 :last-move move)
                  otherteam (chess/other-team team)
                  winner (chess/winner (:captures new-game))
                  checkmate (chess/check-mate? new-game
