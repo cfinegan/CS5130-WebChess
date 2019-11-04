@@ -23,12 +23,13 @@
     (re-frame/dispatch [:board-click x y])))
 
 (defn board-panel []
-  (let [board (re-frame/subscribe [::subs/board])
+  (let [game (re-frame/subscribe [::subs/game])
+        board (and game (:board @game))
         last-move (re-frame/subscribe [::subs/last-move])
         selection (re-frame/subscribe [::subs/selection])
         history (re-frame/subscribe [::subs/history])
         moves (and @selection
-                   (chess/valid-moves @board @selection @history true))]
+                   (chess/valid-moves board @selection @history true))]
     [:div
      [:table {:border 1
               :style  {:table-layout "fixed"
@@ -40,14 +41,75 @@
             `[:tr
               ~@(forv [j (range 8)]
                   (let [pos (chess/->Coord j i)
-                        piece (@board pos)
-                        bg (cond (= pos @selection) "green"
+                        piece (board pos)
+                        piece-sel (board @selection)
+                        team (and selection (:team (board @selection)))
+                        otherteam (chess/other-team team)
+                        enemy (and otherteam
+                                   (chess/find-team board otherteam))
+                        futures (map (fn [m]
+                                       [m
+                                        (chess/apply-move
+                                         @game
+                                         (chess/Move. @selection m))])
+                                     moves)
+                        enemy-moves (apply
+                                     concat
+                                     (map
+                                      #(apply
+                                        concat
+                                        (map
+                                        (fn [e]
+                                          (map
+                                           (fn [m] [% (chess/Move. e m)])
+                                           (chess/valid-moves
+                                            (:board (peek %))
+                                            e
+                                            (conj @history (peek %))
+                                            true)))
+                                        enemy))
+                                      futures))
+                        enemy-futures (map (fn [m]
+                                             [(first m)
+                                              [(peek m)
+                                               (peek
+                                                (chess/apply-move-to-board
+                                                 (:board (peek (first m)))
+                                                 (peek m)))]])
+                                           enemy-moves)
+                        enemy-captures (filter #(and (peek (peek %))
+                                                     (not (empty? (peek (peek %))))
+                                                     (= (:team (peek (peek %)))
+                                                        team)
+                                                     (= (:type (peek (peek %)))
+                                                        (:type piece-sel)))
+                                               enemy-futures)
+                        vuln-moves (filter 
+                                    (fn [m]
+                                      (some
+                                       #(and
+                                         (= m (first (first %)))
+                                         ;; this only covers normal captures
+                                         ;; not special moves like en-passant
+                                         (= m (:to (first (peek %)))))
+                                       enemy-captures))
+                                    moves)
+                        capture-moves (filter
+                                       (fn [m] (some #(= m %) enemy))
+                                       moves)
+                        bg (cond (= pos @selection) "yellow"
+                                 (and vuln-moves
+                                      (some #(= pos %) vuln-moves)) "red"
+                                 (and capture-moves
+                                      (some #(= pos %) capture-moves)) "green"
                                  (and moves (some #(= pos %) moves)) "blue"
                                  (and @last-move
                                       (let [{fx :x fy :y} (:from @last-move)
                                             {tx :x ty :y} (:to @last-move)]
-                                        (or (and (= fx j) (= fy i))
-                                            (and (= tx j) (= ty i))))) "#cccccc")]
+                                        (or (and (= fx j)
+                                                 (= fy i))
+                                            (and (= tx j)
+                                                 (= ty i))))) "#cccccc")]
                     (if piece
                       [:td {:on-click (make-on-click j i)
                             :style {:background-color bg}}
