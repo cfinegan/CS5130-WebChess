@@ -19,6 +19,8 @@
      (if (> len 1)
        {:db (assoc (:db cofx)
                    :history (pop @history)
+                   :gameover false
+                   :message "reverted to previous game state"
                    :selection nil)}
        (throw (js/Error. "Cannot undo board in starting position."))))))
 
