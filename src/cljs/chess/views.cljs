@@ -34,7 +34,56 @@
         selection (re-frame/subscribe [::subs/selection])
         history (re-frame/subscribe [::subs/history])
         moves (and @selection
-                   (chess/valid-moves board @selection @history true))]
+                   (chess/valid-moves board @selection @history true))
+        piece-sel (board @selection)
+        team (and selection (:team (board @selection)))
+        otherteam (chess/other-team team)
+        enemy (and otherteam
+                   (chess/find-team board otherteam))
+        futures (map
+                 #(vector
+                   %
+                   (chess/apply-move
+                    @game
+                    (chess/Move. @selection %)))
+                     moves)
+        enemy-moves (apply
+                     concat
+                     (map
+                      #(apply
+                        concat
+                        (map
+                         (fn [e]
+                           (map
+                            (fn [m] [% (chess/Move. e m)])
+                            (chess/valid-moves
+                             (:board (peek %))
+                             e
+                             (conj @history (peek %))
+                             true)))
+                         enemy))
+                      futures))
+        enemy-futures (map
+                       #(vector
+                         (first %)
+                         (peek
+                          (chess/apply-move-to-board
+                           (:board (peek (first %)))
+                           (peek %))))
+                       enemy-moves)
+        enemy-captures (filter
+                        #(and (peek %)
+                              (not (empty? (peek %)))
+                              (= (:id (peek %))
+                                 (:id piece-sel)))
+                        enemy-futures)
+        vuln-moves (filter 
+                    (fn [m]
+                      (some
+                       #(= m (first (first %)))
+                       enemy-captures))
+                    moves)
+        capture-moves (filter (fn [m] (some #(= m %) enemy)) moves)]
     [:div
      [:table {:border 1
               :style  {:table-layout "fixed"
@@ -47,54 +96,6 @@
               ~@(forv [j (range 8)]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        piece-sel (board @selection)
-                        team (and selection (:team (board @selection)))
-                        otherteam (chess/other-team team)
-                        enemy (and otherteam
-                                   (chess/find-team board otherteam))
-                        futures (map (fn [m]
-                                       [m
-                                        (chess/apply-move
-                                         @game
-                                         (chess/Move. @selection m))])
-                                     moves)
-                        enemy-moves (apply
-                                     concat
-                                     (map
-                                      #(apply
-                                        concat
-                                        (map
-                                        (fn [e]
-                                          (map
-                                           (fn [m] [% (chess/Move. e m)])
-                                           (chess/valid-moves
-                                            (:board (peek %))
-                                            e
-                                            (conj @history (peek %))
-                                            true)))
-                                        enemy))
-                                      futures))
-                        enemy-futures (map (fn [m]
-                                             [(first m)
-                                              (peek
-                                                (chess/apply-move-to-board
-                                                 (:board (peek (first m)))
-                                                 (peek m)))])
-                                           enemy-moves)
-                        enemy-captures (filter #(and (peek %)
-                                                     (not (empty? (peek %)))
-                                                     (= (:id (peek %))
-                                                        (:id piece-sel)))
-                                               enemy-futures)
-                        vuln-moves (filter 
-                                    (fn [m]
-                                      (some
-                                       #(= m (first (first %)))
-                                       enemy-captures))
-                                    moves)
-                        capture-moves (filter
-                                       (fn [m] (some #(= m %) enemy))
-                                       moves)
                         bg (cond (= pos @selection) "yellow"
                                  (and vuln-moves
                                       (some #(= pos %) vuln-moves)) "red"
