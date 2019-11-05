@@ -6,16 +6,21 @@
    [chess.macros :refer-macros [forv]]
    ))
 
-(defn piece->string [{team :team type :type}]
-  (let [team-string (cond (= team chess/WHITE) "W"
-                          (= team chess/BLACK) "B")
-        type-string (cond (= type chess/PAWN) "P"
-                          (= type chess/ROOK) "R"
-                          (= type chess/KNIGHT) "T"
-                          (= type chess/BISHOP) "B"
-                          (= type chess/KING) "K"
-                          (= type chess/QUEEN) "Q")]
-    (str team-string type-string)))
+(defn piece->unicode [{team :team type :type}]
+  (cond (= team chess/WHITE)
+        (cond (= type chess/KING) "&#x2654;"
+              (= type chess/QUEEN) "&#x2655;"
+              (= type chess/ROOK) "&#x2656;"
+              (= type chess/BISHOP) "&#x2657;"
+              (= type chess/KNIGHT) "&#x2658;"
+              (= type chess/PAWN) "&#x2659;")
+        (= team chess/BLACK)
+        (cond (= type chess/KING) "&#x265A;"
+              (= type chess/QUEEN) "&#x265B;"
+              (= type chess/ROOK) "&#x265C;"
+              (= type chess/BISHOP) "&#x265D;"
+              (= type chess/KNIGHT) "&#x265E;"
+              (= type chess/PAWN) "&#x265F;")))
 
 (defn make-on-click [x y]
   (fn [e]
@@ -103,14 +108,12 @@
                                                  (= fy i))
                                             (and (= tx j)
                                                  (= ty i))))) "#cccccc")]
-                    (if piece
-                      [:td {:on-click (make-on-click j i)
-                            :style {:background-color bg}}
-                       (piece->string piece)]
-                      [:td {:on-click (make-on-click j i)
-                            :style {:background-color bg}
-                            :dangerouslySetInnerHTML
-                            {:__html "&nbsp;"}}])))])]]]))
+                    [:td {:on-click (make-on-click j i)
+                          :style {:background-color bg}
+                          :dangerouslySetInnerHTML
+                          {:__html (if piece
+                                     (piece->unicode piece)
+                                     "&nbsp;")}}]))])]]]))
 
 (defn message-panel []
   (let [msg (re-frame/subscribe [::subs/message])]
