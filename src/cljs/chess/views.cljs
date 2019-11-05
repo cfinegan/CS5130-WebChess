@@ -67,7 +67,8 @@
 
 (defn undo-button []
   (let [history (re-frame/subscribe [::subs/history])]
-    [:div [:button {:on-click on-undo-click
+    [:div [:button {:class "btn btn-dark"
+                    :on-click on-undo-click
                     :disabled (<= (count @history) 1)} "undo"]]))
 
 (defn whos-turn-panel []
@@ -75,7 +76,8 @@
     [:div "it's " (chess/team->string team) "'s turn"]))
 
 (defn main-panel []
-  [:div
+  [:div {:class "container mt-3 p-4 rounded"
+         :style {:background-color "#eee"}}
    (message-panel)
    [:br]
    (board-panel)
