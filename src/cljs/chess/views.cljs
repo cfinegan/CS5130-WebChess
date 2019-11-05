@@ -79,19 +79,13 @@
                                            enemy-moves)
                         enemy-captures (filter #(and (peek (peek %))
                                                      (not (empty? (peek (peek %))))
-                                                     (= (:team (peek (peek %)))
-                                                        team)
-                                                     (= (:type (peek (peek %)))
-                                                        (:type piece-sel)))
+                                                     (= (:id (peek (peek %)))
+                                                        (:id piece-sel)))
                                                enemy-futures)
                         vuln-moves (filter 
                                     (fn [m]
                                       (some
-                                       #(and
-                                         (= m (first (first %)))
-                                         ;; this only covers normal captures
-                                         ;; not special moves like en-passant
-                                         (= m (:to (first (peek %)))))
+                                       #(= m (first (first %)))
                                        enemy-captures))
                                     moves)
                         capture-moves (filter
