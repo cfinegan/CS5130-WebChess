@@ -65,7 +65,7 @@
                       futures))
         enemy-futures (map
                        #(vector
-                         (first %)
+                         (first (first %))
                          (peek
                           (chess/apply-move-to-board
                            (:board (peek (first %)))
@@ -78,10 +78,7 @@
                                  (:id piece-sel)))
                         enemy-futures)
         vuln-moves (filter 
-                    (fn [m]
-                      (some
-                       #(= m (first (first %)))
-                       enemy-captures))
+                    (fn [m] (some #(= m (first %)) enemy-captures))
                     moves)
         capture-moves (filter (fn [m] (some #(= m %) enemy)) moves)]
     [:div
