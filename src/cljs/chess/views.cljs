@@ -71,15 +71,14 @@
                                       futures))
                         enemy-futures (map (fn [m]
                                              [(first m)
-                                              [(peek m)
-                                               (peek
+                                              (peek
                                                 (chess/apply-move-to-board
                                                  (:board (peek (first m)))
-                                                 (peek m)))]])
+                                                 (peek m)))])
                                            enemy-moves)
-                        enemy-captures (filter #(and (peek (peek %))
-                                                     (not (empty? (peek (peek %))))
-                                                     (= (:id (peek (peek %)))
+                        enemy-captures (filter #(and (peek %)
+                                                     (not (empty? (peek %)))
+                                                     (= (:id (peek %))
                                                         (:id piece-sel)))
                                                enemy-futures)
                         vuln-moves (filter 
