@@ -88,30 +88,32 @@
                        :height "300px"
                        :text-align "center"}}
       `[:tbody
-        ~@(forv [i (range 8)]
-            `[:tr
-              ~@(forv [j (range 8)]
-                  (let [pos (chess/->Coord j i)
-                        piece (board pos)
-                        bg (cond (= pos @selection) "yellow"
-                                 (and vuln-moves
-                                      (some #(= pos %) vuln-moves)) "red"
-                                 (and capture-moves
-                                      (some #(= pos %) capture-moves)) "green"
-                                 (and moves (some #(= pos %) moves)) "blue"
-                                 (and @last-move
-                                      (let [{fx :x fy :y} (:from @last-move)
-                                            {tx :x ty :y} (:to @last-move)]
-                                        (or (and (= fx j)
-                                                 (= fy i))
-                                            (and (= tx j)
-                                                 (= ty i))))) "#cccccc")]
-                    [:td {:on-click (make-on-click j i)
-                          :style {:background-color bg}
-                          :dangerouslySetInnerHTML
-                          {:__html (if piece
-                                     (piece->unicode piece)
-                                     "&nbsp;")}}]))])]]]))
+        ~@(forv
+           [i (range 8)]
+           `[:tr
+             ~@(forv
+                [j (range 8)]
+                (let [pos (chess/->Coord j i)
+                      piece (board pos)
+                      bg (cond (= pos @selection) "#f3f781"
+                               (and vuln-moves
+                                    (some #(= pos %) vuln-moves)) "#fa5858"
+                               (and capture-moves
+                                    (some #(= pos %) capture-moves)) "#2efe64"
+                               (and moves (some #(= pos %) moves)) "#2eccfa"
+                               (and @last-move
+                                    (let [{fx :x fy :y} (:from @last-move)
+                                          {tx :x ty :y} (:to @last-move)]
+                                      (or (and (= fx j)
+                                               (= fy i))
+                                          (and (= tx j)
+                                               (= ty i))))) "#cccccc")]
+                  [:td {:on-click (make-on-click j i)
+                        :style {:background-color bg}
+                        :dangerouslySetInnerHTML
+                        {:__html (if piece
+                                   (piece->unicode piece)
+                                   "&nbsp;")}}]))])]]]))
 
 (defn message-panel []
   (let [msg (re-frame/subscribe [::subs/message])]
