@@ -30,6 +30,7 @@
 (defn board-panel []
   (let [game (re-frame/subscribe [::subs/game])
         board (and game (:board @game))
+        caps (and game (:captures @game))
         last-move (re-frame/subscribe [::subs/last-move])
         selection (re-frame/subscribe [::subs/selection])
         history (re-frame/subscribe [::subs/history])
@@ -47,6 +48,14 @@
                     @game
                     (chess/Move. @selection %)))
                      moves)
+        future-captures (map
+                         (fn [f]
+                           [(first f)
+                            (filter
+                             (fn [c]
+                               (not (some #(= c %) caps)))
+                             (:captures (peek f)))])
+                         futures)
         enemy-moves (apply
                      concat
                      (map
@@ -80,7 +89,14 @@
         vuln-moves (filter 
                     (fn [m] (some #(= m (first %)) enemy-captures))
                     moves)
-        capture-moves (filter (fn [m] (some #(= m %) enemy)) moves)]
+        capture-moves (filter
+                       (fn [m]
+                         (some
+                          #(and
+                            (= m (first %))
+                            (not (empty? (peek %))))
+                          future-captures))
+                       moves)]
     [:div
      [:table {:border 1
               :style  {:table-layout "fixed"
@@ -96,6 +112,10 @@
                 (let [pos (chess/->Coord j i)
                       piece (board pos)
                       bg (cond (= pos @selection) "#f3f781"
+                               (and vuln-moves
+                                    capture-moves
+                                    (some #(= pos %) vuln-moves)
+                                    (some #(= pos %) capture-moves)) "#b404ae"
                                (and vuln-moves
                                     (some #(= pos %) vuln-moves)) "#fa5858"
                                (and capture-moves
