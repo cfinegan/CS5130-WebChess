@@ -127,7 +127,14 @@
                                       (or (and (= fx j)
                                                (= fy i))
                                           (and (= tx j)
-                                               (= ty i))))) "#cccccc")]
+                                               (= ty i))))) "#cccccc"
+                               :else (if (= (mod j 2) 0)
+                                       (if (= (mod i 2) 1)
+                                         "#ffffff"
+                                         "#f7f2f0")
+                                       (if (= (mod i 2) 1)
+                                         "#f7f2f0"
+                                         "#ffffff")))]
                   [:td {:on-click (make-on-click j i)
                         :style {:background-color bg}
                         :dangerouslySetInnerHTML
