@@ -233,13 +233,17 @@
 (defn apply-move-to-board [board {from :from to :to}]
   (let [{team :team type :type moved? :moved? id :id :as piece} (board from)
         move-piece (if moved? piece (Piece. team type true id))
-        castle? (and (= (:type (board from)) KING)
+        castle? (and (= type KING)
                      (= (:y from) (:y to))
                      (> (abs (- (:x to) (:x from))) 1))
-        en-passant? (and (= (:type (board from)) PAWN)
+        en-passant? (and (= type PAWN)
                          (= (abs (- (:x to) (:x from))) 1)
                          (= (abs (- (:y to) (:y from))) 1)
-                         (not (board to)))]
+                         (not (board to)))
+        promotion? (and (= type PAWN)
+                        (if (= team WHITE)
+                          (= (:y to) 0)
+                          (= (:y to) 7)))]
     (cond
       castle?
       (let [old-rook-pos (if (< (:x to) 4)
@@ -267,6 +271,13 @@
              (dissoc captured-pawn-pos)
              (assoc to move-piece))
          (board captured-pawn-pos)])
+
+      promotion?
+      (let [new-piece (Piece. team QUEEN true id)]
+        [(-> board
+             (dissoc from)
+             (assoc to new-piece))
+         nil])
         
       :else
       [(-> board
