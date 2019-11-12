@@ -7,6 +7,7 @@
                  [reagent "0.8.1"]
                  [re-frame "0.10.9"]
                  [http-kit "2.3.0"]
+                 [org.clojure/data.json "0.2.6"]
                  [org.clojure/core.match "0.3.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/math.combinatorics "0.1.6"]]
