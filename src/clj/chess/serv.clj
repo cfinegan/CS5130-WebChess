@@ -119,10 +119,8 @@
   (with-channel req channel
     (info channel "connected")
     (swap! server server-add-client channel)
-    (on-receive channel
-                (fn [data] (server-handle-message channel data)))
-    (on-close channel
-              (fn [status] (server-close-channel channel status)))))
+    (on-receive channel #(server-handle-message channel %))
+    (on-close channel #(server-close-channel channel %))))
 
 ;; this is a function that stops the server (returned by run-server)
 (defonce server-fn (atom nil))
