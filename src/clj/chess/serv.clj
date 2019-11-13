@@ -48,41 +48,33 @@
 (defn server-handle-forfeit [channel msg]
   (info channel "is forfeiting"))
 
+(defn value-reader [key value]
+  (cond
+    (= key :type) (keyword value)
+    :else value))
+
 ;; received a message from a client
 (defn server-handle-message [channel data]
-  (let [msg (json/read-str data)
+  (let [msg (json/read-str data :key-fn keyword :value-fn value-reader)
         type (:type msg)]
     (cond
-      (= type :find-game)
-      (server-handle-find-game channel msg)
-      
-      (= type :move)
-      (server-handle-move channel msg)
-      
-      (= type :undo)
-      (server-handle-undo channel msg)
-
-      (= type :forfeit)
-      (server-handle-forfeit channel msg)
-      
-      :else
-      (info channel "sent invalid message"))))
+      (= type :find-game) (server-handle-find-game channel msg)
+      (= type :move) (server-handle-move channel msg)
+      (= type :undo) (server-handle-undo channel msg)
+      (= type :forfeit) (server-handle-forfeit channel msg)
+      :else (info channel "sent invalid message"))))
 
 ;; a client disconnected, so end any games they were playing
 (defn server-game-end-disconnect [srv channel]
   (let [games (:games srv)
         client-games (:client-games srv)
-        game-id (and client-games
-                     (client-games channel))
-        game (and game-id
-                  (games game-id))]
+        game-id (and client-games (client-games channel))
+        game (and game-id (games game-id))]
     (if game
       (let [white (if (= channel (:white game))
-                    nil
-                    (:white game))
+                    nil (:white game))
             black (if (= channel (:black game))
-                    nil
-                    (:black game))
+                    nil (:black game))
             other-client (if white white black)]
         (if other-client
           ;; game is over, but don't remove it until
