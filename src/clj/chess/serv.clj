@@ -57,12 +57,11 @@
 
 ;; add this client to the set
 (defn server-add-client* [srv channel]
-  (do
-    (ChessServer.
-     (union (:clients srv) #{channel})
-     (:client-games srv)
-     (:client-lobby srv)
-     (:games srv))))
+  (ChessServer.
+   (union (:clients srv) #{channel})
+   (:client-games srv)
+   (:client-lobby srv)
+   (:games srv)))
 
 (defn game-create [white black]
   (ChessGame.
