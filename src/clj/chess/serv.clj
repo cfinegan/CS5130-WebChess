@@ -100,11 +100,10 @@
                              (assoc channel new-game-id)
                              (assoc opponent new-game-id))
                          (assoc lobbies desired-rules new-desired-lobby)
-                         (assoc games new-game-id new-game))
-                reply-msg (json/write-str {:type :new-game})]
+                         (assoc games new-game-id new-game))]
             (do
-              (send! channel reply-msg)
-              (send! opponent reply-msg)
+              (send! channel (json/write-str {:type :new-game-black}))
+              (send! opponent (json/write-str {:type :new-game-white}))
               new-srv))
           ;; add them to the set of players looking for the game
           (let [new-desired-lobby (union desired-lobby #{channel})
