@@ -74,37 +74,40 @@
 (defn server-handle-find-game* [srv channel msg]
   (let [client-games (:client-games srv)
         games (:games srv)]
-    (when-not (client-games channel)
+    ;; client can only look for a game if they're not already playing one
+    (if (not (client-games channel))
       (let [lobbies (:client-lobbies srv)
             desired-rules (:desired-rules msg)
             desired-lobby (lobbies desired-rules)]
         (if (and desired-lobby
                  (not (empty? desired-lobby)))
+          ;; pick the first player and make a new game
           (let [opponent (first desired-lobby)
                 new-desired-lobby (disj desired-lobby opponent)
                 new-game (create-game opponent channel)
                 new-game-id (:id new-game)
-                new-server (ChessServer.
-                            (:clients srv)
-                            (-> client-games
-                                (assoc channel new-game-id)
-                                (assoc opponent new-game-id))
-                            (assoc lobbies desired-rules new-desired-lobby)
-                            (assoc games new-game-id new-game))]
-            new-server)
+                new-srv (ChessServer.
+                         (:clients srv)
+                         (-> client-games
+                             (assoc channel new-game-id)
+                             (assoc opponent new-game-id))
+                         (assoc lobbies desired-rules new-desired-lobby)
+                         (assoc games new-game-id new-game))]
+            new-srv)
+          ;; add them to the set of players looking for the game
           (let [new-desired-lobby (union desired-lobby #{channel})
-                new-server (ChessServer.
-                            (:clients srv)
-                            client-games
-                            (assoc lobbies desired-rules new-desired-lobby)
-                            games)]
-            new-server))))))
+                new-srv (ChessServer.
+                         (:clients srv)
+                         client-games
+                         (assoc lobbies desired-rules new-desired-lobby)
+                         games)]
+            new-srv)))
+      srv)))
 
 ;; we reply to the clients after we do the swap
 (defn server-handle-find-game [channel msg]
   (info channel "is looking for a game")
   (swap! server server-handle-find-game* channel msg))
-
 
 ;; TODO: copy the logic from '../../cljs/chess/events.cljs'
 (defn server-handle-move* [srv channel msg]
