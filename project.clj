@@ -7,6 +7,7 @@
                  [reagent "0.8.1"]
                  [re-frame "0.10.9"]
                  [http-kit "2.3.0"]
+                 [compojure "1.6.1"]
                  [org.clojure/data.json "0.2.6"]
                  [org.clojure/core.match "0.3.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]
@@ -19,7 +20,6 @@
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
-
 
   :aliases
   {"dev"  ["with-profile" "dev" "run" "-m" "shadow.cljs.devtools.cli" "watch" "app"]

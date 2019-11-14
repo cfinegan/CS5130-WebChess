@@ -3,7 +3,8 @@
             [clojure.data.json :as json])
   (:use org.httpkit.server
         clojure.set
-        [clojure.tools.logging :only [info]]))
+        [clojure.tools.logging :only [info]]
+        (compojure [core :only [defroutes GET]])))
 
 ;; structure of messages received by server:
 ;;
@@ -34,10 +35,11 @@
                       black
                       history
                       active-team
-                      game-over])
+                      game-over?
+                      undo])
 
 ;; clients is the set of all currently connected clients
-;; client-games is a mapping from clients to game IDs
+;; client-games is a mapping from clients to game IDs (only ONE GAME PER CLIENT)
 ;; client-lobby is a mapping from desired rules to a set of clients
 ;; games is a mapping from game IDs to ChessGames
 (defrecord ChessServer [clients
@@ -51,40 +53,47 @@
     (swap! max-game-id inc)))
 
 ;; atomic server object
-(defonce server (atom (ChessServer. #{} nil nil nil)))
+(defonce server (volatile! (ChessServer. #{} nil nil nil)))
 
 ;; add this client to the set
 (defn server-add-client* [srv channel]
-  (ChessServer.
-   (union (:clients srv) #{channel})
-   (:client-games srv)
-   (:client-lobby srv)
-   (:games srv)))
+  (do
+    (ChessServer.
+     (union (:clients srv) #{channel})
+     (:client-games srv)
+     (:client-lobby srv)
+     (:games srv))))
 
-(defn create-game [white black]
+(defn game-create [white black]
   (ChessGame.
    (next-game-id)
    white
    black
    [(assoc chess/default-game :last-move nil)]
    chess/WHITE
-   false))
+   false
+   nil))
+
+(defn game-get-opponent [game channel]
+  (let [white (:white game)]
+    (if (= white channel)
+      white
+      (:black game))))
 
 ;; logic for handling matchmaking
 (defn server-handle-find-game* [srv channel msg]
   (let [client-games (:client-games srv)
         games (:games srv)]
     ;; client can only look for a game if they're not already playing one
-    (if (not (client-games channel))
+    (if-not (client-games channel)
       (let [lobbies (:client-lobbies srv)
             desired-rules (:desired-rules msg)
             desired-lobby (lobbies desired-rules)]
-        (if (and desired-lobby
-                 (not (empty? desired-lobby)))
+        (if (and desired-lobby (not (empty? desired-lobby)))
           ;; pick the first player and make a new game
           (let [opponent (first desired-lobby)
                 new-desired-lobby (disj desired-lobby opponent)
-                new-game (create-game opponent channel)
+                new-game (game-create opponent channel)
                 new-game-id (:id new-game)
                 new-srv (ChessServer.
                          (:clients srv)
@@ -92,8 +101,12 @@
                              (assoc channel new-game-id)
                              (assoc opponent new-game-id))
                          (assoc lobbies desired-rules new-desired-lobby)
-                         (assoc games new-game-id new-game))]
-            new-srv)
+                         (assoc games new-game-id new-game))
+                reply-msg (json/write-str {:type :new-game})]
+            (do
+              (send! channel reply-msg)
+              (send! opponent reply-msg)
+              new-srv))
           ;; add them to the set of players looking for the game
           (let [new-desired-lobby (union desired-lobby #{channel})
                 new-srv (ChessServer.
@@ -101,13 +114,17 @@
                          client-games
                          (assoc lobbies desired-rules new-desired-lobby)
                          games)]
-            new-srv)))
-      srv)))
+            (do
+              (send! channel (json/write-str {:type :finding-game}))
+              new-srv))))
+      (do
+        (send! channel (json/write-str {:type :bad-find-game}))
+        srv))))
 
-;; we reply to the clients after we do the swap
 (defn server-handle-find-game [channel msg]
   (info channel "is looking for a game")
-  (swap! server server-handle-find-game* channel msg))
+  (locking server
+    (vswap! server server-handle-find-game* channel msg)))
 
 ;; TODO: copy the logic from '../../cljs/chess/events.cljs'
 (defn server-handle-move* [srv channel msg]
@@ -115,43 +132,177 @@
 
 (defn server-handle-move [channel msg]
   (info channel "sent a move")
-  (swap! server server-handle-move* channel msg))
+  (locking server
+    (vswap! server server-handle-move* channel msg)))
+
+(defn game-request-undo [game channel]
+  (let [history (:history game)]
+    (if (and history
+             (> (count history) 1))
+      (ChessGame.
+       (:id game)
+       (:white game)
+       (:black game)
+       (:history game)
+       (:active-team game)
+       (:game-over? game)
+       channel)
+      nil)))
 
 ;; update the state to remember that this client requested an undo
 (defn server-handle-undo-request* [srv channel msg]
-  ;; TODO
-  srv)
+  (let [client-games (:client-games srv)
+        games (:games srv)
+        game-id (client-games channel)
+        game (and game-id (games game-id))
+        opponent (and game (game-get-opponent game channel))]
+    (if (and opponent (not (:undo game)))
+      (let [new-game (game-request-undo game channel)]
+        (if new-game
+          (let [new-srv (ChessServer.
+                         (:clients srv)
+                         client-games
+                         (:client-lobbies srv)
+                         (assoc games game-id new-game))]
+            (do
+              (send! opponent (json/write-str {:type :undo-request}))
+              new-srv))
+          (do
+            (send! channel (json/write-str {:type :bad-undo-request}))
+            srv)))
+      (do
+        (send! channel (json/write-str {:type :bad-undo-request}))
+        srv))))
 
 (defn server-handle-undo-request [channel msg]
   (info channel "requested an undo")
-  (swap! server server-handle-undo-request* channel msg))
+  (locking server
+    (vswap! server server-handle-undo-request* channel msg)))
+
+(defn game-accept-undo [game]
+  (let [history (:history game)]
+    (if (and history
+             (> (count history) 1))
+      (let [white (:white game)
+            undo (:undo game)]
+        (ChessGame.
+         (:id game)
+         white
+         (:black game)
+         (pop history)
+         (if undo
+           (if (= undo white) chess/WHITE chess/BLACK)
+           (:active-team game))
+         (:game-over? game)
+         nil))
+      nil)))
 
 ;; client accepts the opponent's request for undo
 (defn server-handle-undo-accept* [srv channel msg]
-  ;; TODO
-  srv)
+  (let [client-games (:client-games srv)
+        games (:games srv)
+        game-id (client-games channel)
+        game (and game-id (games game-id))
+        opponent (and game (game-get-opponent game channel))
+        undo (and game (:undo game))]
+    (if (and opponent
+             undo
+             (= undo opponent))
+      (let [new-game (game-accept-undo game)]
+        (if new-game
+          (let [new-srv (ChessServer.
+                         (:clients srv)
+                         client-games
+                         (:client-lobbies srv)
+                         (assoc games game-id new-game))]
+            (do
+              (send! opponent (json/write-str {:type :undo-accept}))
+              new-srv))
+          (do
+            (send! channel (json/write-str {:type :bad-undo-accept}))
+            srv)))
+      (do
+        (send! channel (json/write-str {:type :bad-undo-accept}))
+        srv))))
 
 (defn server-handle-undo-accept [channel msg]
   (info channel "accepted an undo")
-  (swap! server server-handle-undo-accept* channel msg))
+  (locking server
+    (vswap! server server-handle-undo-accept* channel msg)))
 
 ;; forfeit is possible at any time
 (defn server-handle-forfeit* [srv channel msg]
-  ;; TODO
-  srv)
+  (let [client-games (:client-games srv)
+        games (:games srv)
+        game-id (client-games channel)
+        game (and game-id (games game-id))
+        opponent (and game (game-get-opponent game channel))]
+    (if (and opponent
+             (not (:game-over? game))
+             (not (:undo game)))
+      (let [new-game (ChessGame.
+                      (:id game)
+                      (:white game)
+                      (:black game)
+                      (:history game)
+                      nil
+                      true
+                      nil)
+            new-srv (ChessServer.
+                     (:clients srv)
+                     client-games
+                     (:client-lobbies srv)
+                     (assoc games game-id new-game))]
+        (do
+          (send! channel (json/write-str {:type :loser-forfeit}))
+          (send! opponent (json/write-str {:type :winner-forfeit}))
+          new-srv))
+      (do
+        (send! channel (json/write-str {:type :bad-forfeit-request}))
+        srv))))
 
 (defn server-handle-forfeit [channel msg]
   (info channel "is forfeiting")
-  (swap! server server-handle-forfeit* channel msg))
+  (locking server
+    (vswap! server server-handle-forfeit* channel msg)))
 
 ;; return to lobby should only be possible once the game has ended
 (defn server-handle-return* [srv channel msg]
-  ;; TODO
-  srv)
+  (let [client-games (:client-games srv)
+        games (:games srv)
+        game-id (client-games channel)
+        game (and game-id (games game-id))]
+    (if (and game
+             (:game-over? game))
+      (let [white (if (= channel (:white game)) 
+                    nil (:white game))
+            black (if (= channel (:black game))
+                    nil (:black game))
+            new-game (ChessGame.
+                      (:id game)
+                      white
+                      black
+                      (:history game)
+                      nil
+                      true
+                      nil)
+            new-srv (ChessServer.
+                     (:clients srv)
+                     (dissoc client-games channel)
+                     (:client-lobbies srv)
+                     (assoc games game-id new-game))
+            opponent (if white white black)]
+        (do
+          (send! opponent (json/write-str {:type :disconnect}))
+          new-srv))
+      (do
+        (send! channel (json/write-str {:type :bad-return-request}))
+        srv))))
 
 (defn server-handle-return [channel msg]
   (info channel "is returning to lobby")
-  (swap! server server-handle-return* channel msg))
+  (locking server
+    (vswap! server server-handle-return* channel msg)))
 
 (defn value-reader [key value]
   (cond
@@ -192,13 +343,13 @@
                           black
                           (:history game)
                           nil
-                          true)]
-            ;; send new-game to the other client
-            ;; along with another message that the 
-            ;; other player has disconnected
-            (-> games
-                (dissoc game-id)
-                (assoc game-id new-game)))
+                          true
+                          nil)]
+            (do
+              (send! other-client (json/write-str {:type :disconnect}))
+              (-> games
+                  (dissoc game-id)
+                  (assoc game-id new-game))))
           (dissoc games game-id)))
       games)))
 
@@ -212,14 +363,16 @@
 
 ;; handler for when a client closes their connection to the server
 (defn server-close-channel [channel status]
-  (swap! server server-close-channel* channel)
-  (info channel "closed, status" status))
+  (info channel "closed, status" status)
+  (locking server
+    (vswap! server server-close-channel* channel)))
 
 ;; request handler
 (defn app [req]
   (with-channel req channel
     (info channel "connected")
-    (swap! server server-add-client* channel)
+    (locking server
+      (vswap! server server-add-client* channel))
     (on-receive channel #(server-handle-message channel %))
     (on-close channel #(server-close-channel channel %))))
 
@@ -232,7 +385,10 @@
     (@server-fn :timeout 100)
     (reset! server-fn nil)))
 
+(defroutes routes
+  (GET "/ws" [] app))
+
 ;; entry point
 (defn -main [& args]
-  (reset! server-fn (run-server app {:port 8080}))
+  (reset! server-fn (run-server #'routes {:port 8080}))
   (info "server started on port 8080"))
