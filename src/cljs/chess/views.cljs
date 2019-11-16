@@ -29,15 +29,25 @@
 
 (defn board-panel []
   (let [game (re-frame/subscribe [::subs/game])
+        active-team (re-frame/subscribe [::subs/active-team])
+        rotate? (and active-team (= @active-team chess/BLACK))
         board (and game (:board @game))
+        view-board (and board
+                        (if rotate?
+                          (chess/rotate-board board)
+                          board))
         caps (and game (:captures @game))
         last-move (re-frame/subscribe [::subs/last-move])
-        selection (re-frame/subscribe [::subs/selection])
+        view-selection (re-frame/subscribe [::subs/selection])
+        selection (and @view-selection
+                       (if rotate?
+                         (chess/rotate-coord @view-selection)
+                         @view-selection))
         history (re-frame/subscribe [::subs/history])
-        moves (and @selection
-                   (chess/valid-moves board @selection @history true))
-        piece-sel (board @selection)
-        team (and selection (:team (board @selection)))
+        moves (and selection
+                   (chess/valid-moves board selection @history true))
+        piece-sel (board selection)
+        team (and selection (:team (board selection)))
         otherteam (chess/other-team team)
         enemy (and otherteam
                    (chess/find-team board otherteam))
@@ -46,7 +56,7 @@
                    %
                    (chess/apply-move
                     @game
-                    (chess/Move. @selection %)))
+                    (chess/Move. selection %)))
                      moves)
         future-captures (map
                          (fn [f]
@@ -109,9 +119,10 @@
            `[:tr
              ~@(forv
                 [j (range 8)]
-                (let [pos (chess/->Coord j i)
+                (let [view-pos (chess/->Coord j i)
+                      pos (if rotate? (chess/rotate-coord view-pos) view-pos)
                       piece (board pos)
-                      bg (cond (= pos @selection) "#f3f781"
+                      bg (cond (= pos selection) "#f3f781"
                                (and vuln-moves
                                     capture-moves
                                     (some #(= pos %) vuln-moves)
@@ -122,8 +133,16 @@
                                     (some #(= pos %) capture-moves)) "#2efe64"
                                (and moves (some #(= pos %) moves)) "#2eccfa"
                                (and @last-move
-                                    (let [{fx :x fy :y} (:from @last-move)
-                                          {tx :x ty :y} (:to @last-move)]
+                                    (let [r-from (if rotate?
+                                                   (chess/rotate-coord
+                                                    (:from @last-move))
+                                                   (:from @last-move))
+                                          r-to (if rotate?
+                                                 (chess/rotate-coord
+                                                  (:to @last-move))
+                                                 (:to @last-move))
+                                          {fx :x fy :y} r-from
+                                          {tx :x ty :y} r-to]
                                       (or (and (= fx j)
                                                (= fy i))
                                           (and (= tx j)

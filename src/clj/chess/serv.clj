@@ -30,22 +30,13 @@
 
 ;; id is the game's unique ID
 ;; white and black are the two clients
-(defrecord ChessGame [id
-                      white
-                      black
-                      history
-                      active-team
-                      game-over?
-                      undo])
+(defrecord ChessGame [id white black history active-team game-over? undo])
 
 ;; clients is the set of all currently connected clients
 ;; client-games is a mapping from clients to game IDs (only ONE GAME PER CLIENT)
 ;; client-lobby is a mapping from desired rules to a set of clients
 ;; games is a mapping from game IDs to ChessGames
-(defrecord ChessServer [clients
-                        client-games
-                        client-lobbies
-                        games])
+(defrecord ChessServer [clients client-games client-lobbies games])
 
 ;; monotonically increasing game IDs
 (let [max-game-id (atom 0)]
@@ -78,6 +69,12 @@
     (if (= white channel)
       white
       (:black game))))
+
+(defn game-get-team [game channel]
+  (cond
+    (= (:white game) channel) chess/WHITE
+    (= (:black game) channel) chess/BLACK
+    :else nil))
 
 ;; logic for handling matchmaking
 (defn server-handle-find-game* [srv channel msg]
@@ -124,9 +121,92 @@
   (locking server
     (vswap! server server-handle-find-game* channel msg)))
 
-;; TODO: copy the logic from '../../cljs/chess/events.cljs'
 (defn server-handle-move* [srv channel msg]
-  srv)
+  (let [client-games (:client-games srv)
+        games (:games srv)
+        game-id (client-games channel)
+        game (and game-id (games game-id))
+        opponent (and game (game-get-opponent game channel))
+        team (and game (game-get-team game channel))
+        from-msg (:from msg)
+        to-msg (:to msg)
+        from (and from-msg
+                  (:x from-msg)
+                  (:y from-msg)
+                  (chess/->Coord (:x from-msg) (:y from-msg)))
+        to (and to-msg
+                (:x to-msg)
+                (:y to-msg)
+                (chess/->Coord (:x to-msg) (:y to-msg)))]
+    (if (and opponent
+             team
+             (not (:undo game))
+             (= (:active-team game) team)
+             from
+             to)
+      (let [cur-history (:history game)
+            cur-game (last cur-history)            
+            cur-board (:board cur-game)
+            cur-caps (:captures game)
+            piece (cur-board from)]
+        (if (and piece (= (:team piece) team))
+          (let [moves (chess/valid-moves cur-board from cur-history true)]
+            (if (some #(= to %) moves)
+              (let [move (chess/->Move from to)
+                    new-game (assoc
+                              (chess/apply-move cur-game move)
+                              :last-move move)
+                    new-history (conj cur-history new-game)
+                    winner (chess/winner (:captures new-game))
+                    checkmate? (chess/check-mate?
+                                new-game
+                                (chess/other-team team)
+                                new-history)
+                    update-srv (fn [g]
+                                 (ChessServer.
+                                  (:clients srv)
+                                  client-games
+                                  (:client-lobbies srv)
+                                  (assoc games game-id g)))
+                    update-game (fn [o]
+                                  (ChessGame.
+                                   (:id game)
+                                   (:white game)
+                                   (:black game)
+                                   new-history
+                                   (chess/other-team team)
+                                   o
+                                   nil))]
+                (if (or (= winner team) checkmate?)
+                  (do
+                    (send!
+                     channel
+                     (json/write-str
+                      :type
+                      (if checkmate? :winner-checkmate :winner)))
+                    (send!
+                     opponent
+                     (json/write-str
+                      :type
+                      (if checkmate? :loser-checkmate :loser)))
+                    (update-srv (update-game true)))
+                  (do
+                    (send! channel (json/write-str :type :valid-move))
+                    (send! opponent (json/write-str :type :opponent-moved))
+                    (update-srv (update-game false)))))
+              (do
+                (send! channel (json/write-str :type :invalid-move))
+                srv)))            
+          (do
+            (send!
+             channel
+             (json/write-str
+              :type
+              (if piece :wrong-piece :no-piece)))
+            srv)))
+      (do
+        (send! channel (json/write-str :type :bad-move-request))
+        srv))))
 
 (defn server-handle-move [channel msg]
   (info channel "sent a move")
@@ -135,7 +215,8 @@
 
 (defn game-request-undo [game channel]
   (let [history (:history game)]
-    (if (and history
+    (if (and (not (:game-over? game))
+             history
              (> (count history) 1))
       (ChessGame.
        (:id game)
@@ -153,8 +234,12 @@
         games (:games srv)
         game-id (client-games channel)
         game (and game-id (games game-id))
+        team (and game (game-get-team game channel))
         opponent (and game (game-get-opponent game channel))]
-    (if (and opponent (not (:undo game)))
+    (if (and opponent
+             team
+             (not (:undo game))
+             (not (= (:active-team game) team)))
       (let [new-game (game-request-undo game channel)]
         (if new-game
           (let [new-srv (ChessServer.
@@ -191,7 +276,7 @@
          (if undo
            (if (= undo white) chess/WHITE chess/BLACK)
            (:active-team game))
-         (:game-over? game)
+         false
          nil))
       nil)))
 

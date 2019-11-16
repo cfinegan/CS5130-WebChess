@@ -39,6 +39,24 @@
   (and (< (:x coord) 8) (>= (:x coord) 0)
        (< (:y coord) 8) (>= (:y coord) 0)))
 
+(defn rotate-coord [coord]
+  (if (valid-coord? coord)
+    (Coord. (- 7 (:x coord))
+            (- 7 (:y coord)))
+    nil))
+
+(defn rotate-board* [board-seq]
+  (if (empty? board-seq)
+    nil
+    (let [[pos piece] (first board-seq)]
+      (assoc
+       (rotate-board* (rest board-seq))
+       (rotate-coord pos)
+       piece))))
+
+(defn rotate-board [board]
+  (rotate-board* (seq board)))
+
 (defn accum-tiles [x-xform y-xform board team start]
   (let [start-x (x-xform (:x start))
         start-y (y-xform (:y start))]
@@ -397,4 +415,5 @@
     (Coord. 4 6) (wpawn 29)
     (Coord. 5 6) (wpawn 30)
     (Coord. 6 6) (wpawn 31)
-    (Coord. 7 6) (wpawn 32)} {}))
+    (Coord. 7 6) (wpawn 32)}
+   {}))

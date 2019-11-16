@@ -4,9 +4,9 @@
    [re-frame.core :as re-frame]
    [chess.events :as events]
    [chess.views :as views]
-   [chess.config :as config]
-   ))
+   [chess.config :as config]))
 
+;; (def conn (js/WebSocket. "ws://127.0.0.1:8080/ws"))
 
 (defn dev-setup []
   (when config/debug?
