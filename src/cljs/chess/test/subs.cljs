@@ -1,4 +1,4 @@
-(ns chess.subs
+(ns chess.test.subs
   (:require
    [re-frame.core :as re-frame]
    [chess.chess :as chess]))
@@ -49,3 +49,8 @@
  ::last-move
  (fn [db]
    (:last-move (last (:history db)))))
+
+(re-frame/reg-sub
+ ::rules
+ (fn [db]
+   (:rules db)))

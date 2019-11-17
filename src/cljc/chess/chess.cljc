@@ -25,6 +25,8 @@
 
 (defrecord Move [from to])
 
+(defrecord Rules [self-check? en-passant?])
+
 (def WHITE :white)
 (def BLACK :black)
 

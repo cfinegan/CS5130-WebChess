@@ -10,7 +10,7 @@
 ;;
 ;; 1. Find a game
 ;; :type :find-game
-;;   :desired-rules {...}
+;;   :rules {...}
 ;;
 ;; 2. Make a move
 ;; :type :move
@@ -36,7 +36,7 @@
 ;; client-games is a mapping from clients to game IDs (only ONE GAME PER CLIENT)
 ;; client-lobby is a mapping from desired rules to a set of clients
 ;; games is a mapping from game IDs to ChessGames
-(defrecord ChessServer [clients client-games client-lobbies games])
+(defrecord ChessServer [clients client-games lobbies games])
 
 ;; monotonically increasing game IDs
 (let [max-game-id (atom 0)]
@@ -51,7 +51,7 @@
   (ChessServer.
    (union (:clients srv) #{channel})
    (:client-games srv)
-   (:client-lobby srv)
+   (:lobbies srv)
    (:games srv)))
 
 (defn game-create [white black]
@@ -81,14 +81,15 @@
   (let [client-games (:client-games srv)
         games (:games srv)]
     ;; client can only look for a game if they're not already playing one
-    (if-not (client-games channel)
-      (let [lobbies (:client-lobbies srv)
-            desired-rules (:desired-rules msg)
-            desired-lobby (lobbies desired-rules)]
-        (if (and desired-lobby (not (empty? desired-lobby)))
+    (if (or (nil? client-games)
+            (nil? (client-games channel)))
+      (let [lobbies (:lobbies srv)
+            rules (:rules msg)
+            lobby (and lobbies (lobbies rules))]
+        (if (and lobby (not (empty? lobby)))
           ;; pick the first player and make a new game
-          (let [opponent (first desired-lobby)
-                new-desired-lobby (disj desired-lobby opponent)
+          (let [opponent (first lobby)
+                new-lobby (disj lobby opponent)
                 new-game (game-create opponent channel)
                 new-game-id (:id new-game)
                 new-srv (ChessServer.
@@ -96,18 +97,18 @@
                          (-> client-games
                              (assoc channel new-game-id)
                              (assoc opponent new-game-id))
-                         (assoc lobbies desired-rules new-desired-lobby)
+                         (assoc lobbies rules new-lobby)
                          (assoc games new-game-id new-game))]
             (do
               (send! channel (json/write-str {:type :new-game-black}))
               (send! opponent (json/write-str {:type :new-game-white}))
               new-srv))
           ;; add them to the set of players looking for the game
-          (let [new-desired-lobby (union desired-lobby #{channel})
+          (let [new-lobby (union lobby #{channel})
                 new-srv (ChessServer.
                          (:clients srv)
                          client-games
-                         (assoc lobbies desired-rules new-desired-lobby)
+                         (assoc lobbies rules new-lobby)
                          games)]
             (do
               (send! channel (json/write-str {:type :finding-game}))
@@ -117,9 +118,10 @@
         srv))))
 
 (defn server-handle-find-game [channel msg]
-  (info channel "is looking for a game")
+  (info channel "is looking for a game with rules" (:rules msg))
   (locking server
-    (vswap! server server-handle-find-game* channel msg)))
+    (vswap! server server-handle-find-game* channel msg)
+    (info @server)))
 
 (defn server-handle-move* [srv channel msg]
   (let [client-games (:client-games srv)
@@ -166,7 +168,7 @@
                                  (ChessServer.
                                   (:clients srv)
                                   client-games
-                                  (:client-lobbies srv)
+                                  (:lobbies srv)
                                   (assoc games game-id g)))
                     update-game (fn [o]
                                   (ChessGame.
@@ -245,7 +247,7 @@
           (let [new-srv (ChessServer.
                          (:clients srv)
                          client-games
-                         (:client-lobbies srv)
+                         (:lobbies srv)
                          (assoc games game-id new-game))]
             (do
               (send! opponent (json/write-str {:type :undo-request}))
@@ -296,7 +298,7 @@
           (let [new-srv (ChessServer.
                          (:clients srv)
                          client-games
-                         (:client-lobbies srv)
+                         (:lobbies srv)
                          (assoc games game-id new-game))]
             (do
               (send! opponent (json/write-str {:type :undo-accept}))
@@ -403,7 +405,7 @@
       (= type :undo-accept) (server-handle-undo-accept channel msg)
       (= type :forfeit) (server-handle-forfeit channel msg)
       (= type :return) (server-handle-return channel msg)
-      :else (info channel "sent invalid message"))))
+      :else (info channel "sent invalid message" msg))))
 
 ;; a client disconnected, so end any games they were playing
 (defn server-game-end-disconnect* [srv channel]

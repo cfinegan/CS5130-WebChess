@@ -1,7 +1,7 @@
-(ns chess.views
+(ns chess.test.views
   (:require
    [re-frame.core :as re-frame]
-   [chess.subs :as subs]
+   [chess.test.subs :as subs]
    [chess.chess :as chess]
    [chess.macros :refer-macros [forv]]
    ))

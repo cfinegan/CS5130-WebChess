@@ -1,8 +1,8 @@
-(ns chess.events
+(ns chess.test.events
   (:require
    [re-frame.core :as re-frame]
-   [chess.subs :as subs]
-   [chess.db :as db]
+   [chess.test.subs :as subs]
+   [chess.test.db :as db]
    [chess.chess :as chess]
    ))
 

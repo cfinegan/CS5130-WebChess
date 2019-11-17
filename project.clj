@@ -22,12 +22,10 @@
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
   :aliases
-  {"dev"  ["with-profile" "dev" "run" "-m" "shadow.cljs.devtools.cli" "watch" "app"]
-   "prod" ["with-profile" "prod" "run" "-m" "shadow.cljs.devtools.cli" "release" "app"]
+  {"dev"  ["with-profile" "dev" "run" "-m" "shadow.cljs.devtools.cli" "watch" "app-dev"]
+   "prod" ["with-profile" "prod" "run" "-m" "shadow.cljs.devtools.cli" "release" "app-prod"]
    "serv" ["run" "-m" "chess.serv"]}
 
   :profiles
-  {:dev
-   {:dependencies [[binaryage/devtools "0.9.10"]]}
-   :prod {}
-   })
+  {:dev {:dependencies [[binaryage/devtools "0.9.10"]]}
+   :prod {}})

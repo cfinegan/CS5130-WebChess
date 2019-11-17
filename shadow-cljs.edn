@@ -1,12 +1,15 @@
-{:lein   true
+{:lein true
 
  :nrepl {:port 8777}
 
- :builds {:app {:target          :browser
-                :output-dir      "resources/public/js/compiled"
-                :asset-path      "/js/compiled"
-                :modules         {:app {:init-fn chess.core/init
-                                        :preloads [devtools.preload]}}
-                :devtools        {:http-root    "resources/public"
-                                  :http-port    8280
-                                  }}}}
+ :builds {:app-dev {:target          :browser
+                    :output-dir      "resources/public/js/compiled"
+                    :asset-path      "/js/compiled"
+                    :modules         {:app {:init-fn chess.test.core/init
+                                            :preloads [devtools.preload]}}
+                    :devtools        {:http-root    "resources/public"
+                                      :http-port    8280}}
+          :app-prod {:target         :browser
+                     :output-dir     "resources/public/js/compiled"
+                     :asset-path     "/js/compiled"
+                     :modules        {:app {:init-fn chess.cl.core/init}}}}}

@@ -1,12 +1,10 @@
-(ns chess.core
+(ns chess.test.core
   (:require
    [reagent.core :as reagent]
    [re-frame.core :as re-frame]
-   [chess.events :as events]
-   [chess.views :as views]
-   [chess.config :as config]))
-
-;; (def conn (js/WebSocket. "ws://127.0.0.1:8080/ws"))
+   [chess.test.events :as events]
+   [chess.test.views :as views]
+   [chess.test.config :as config]))
 
 (defn dev-setup []
   (when config/debug?
