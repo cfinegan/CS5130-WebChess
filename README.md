@@ -17,7 +17,22 @@ Wait a bit, then browse to [http://localhost:8280](http://localhost:8280).
 
 ## Production Build
 
-Coming Soon!
+### Start the chess server:
+
+```
+lein serv
+```
+
+### Compile the client app:
+
+```
+lein prod
+```
+
+### Test the client app:
+
+Open `resources/public/index.html` in your browser. Each instance of this app will be a unique client for the server, so you can play against yourself if you want to test the functionality.
+
 
 ## TODO
 
