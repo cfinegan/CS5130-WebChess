@@ -6,12 +6,288 @@
    [chess.chess :as chess]))
 
 (defn write-json-str [obj]
-  (.stringify js/JSON obj))
+  (.stringify js/JSON (clj->js obj)))
+
+;; structure of messages received by client:
+;;
+;; Server starts a game
+;; :type :new-game
+;; :team :white or :black
+;;
+;; Server is looking for an opponent
+;; :type :finding-game
+;;
+;; Server rejected request for game 
+;; :type :bad-find-game
+;;
+;; Winner by checkmate
+;; :type :winner-checkmate
+;;
+;; Winner by other means
+;; :type :winner
+;;
+;; Loser by checkmate
+;; :type :loser-checkmate
+;;
+;; Loser by other means
+;; :type :loser
+;;
+;; Server accepted the player's move (selected piece was also valid)
+;; :type :valid-move
+;;
+;; Server accepted the opponent's move (it's your turn now)
+;; :type :opponent-moved
+;; :from {:x <int> :y <int>}
+;; :to {:x <int> :y <int>}
+;; :captured {:x <int> :y <int>} or nil
+;;
+;; Server says that the move does not conform to the rules of the game
+;; :type :invalid-move
+;;
+;; Cannot select empty space
+;; :type :no-piece
+;;
+;; Cannot select opponent's piece
+;; :type :wrong-piece
+;;
+;; Server rejected the move request (invalid game state)
+;; :type :bad-move-request
+;;
+;; Server acknowleged the undo request (client must now wait for opponent)
+;; :type :undo-request
+;;
+;; Server rejected the undo request
+;; :type :bad-undo-request
+;;
+;; Opponent's response to the undo request
+;; :type :undo-response
+;; :accept? true or false
+;;
+;; Bad undo response (invalid game state, already processing undo, etc)
+;; :type :bad-undo-response
+;;
+;; Player forfeited (you lose)
+;; :type :loser-forfeit
+;;
+;; Opponent forfeited (you win)
+;; :type :winner-forfeit
+;;
+;; Bad forfeit request (invalid game state)
+;; :type :bad-forfeit-request
+;;
+;; Opponent left the game (after the game was over)
+;; :type :leave
+;;
+;; Bad leave request (invalid game state)
+;; :type :bad-leave-request
+;;
+;; Opponent closed their connection
+;; :type :disconnect
+
+(defn read-json-response [r]
+  (js->clj (.parse js/JSON (.-data r)) :keywordize-keys true))
+
+(defn client-handle-response [r]
+  (let [msg (read-json-response r)
+        type (keyword (:type msg))]
+    (cond
+      (= type :new-game) (re-frame/dispatch [:start-game msg])
+      (= type :finding-game) (re-frame/dispatch [:server-finding-game])
+      (= type :bad-find-game) (re-frame/dispatch [:bad-find-game])
+      (= type :winner-checkmate) (re-frame/dispatch [:winner :checkmate])
+      (= type :winner) (re-frame/dispatch [:winner nil])
+      (= type :loser-checkmate) (re-frame/dispatch [:loser :checkmate])
+      (= type :loser) (re-frame/dispatch [:loser nil])
+      (= type :valid-move) (re-frame/dispatch [:valid-move])
+      (= type :opponent-moved) (re-frame/dispatch [:opponent-moved msg])
+      (= type :invalid-move) (re-frame/dispatch [:invalid-move nil])
+      (= type :no-piece) (re-frame/dispatch [:invalid-move :no-piece])
+      (= type :wrong-piece) (re-frame/dispatch [:invalid-move :wrong-piece])
+      (= type :bad-move-request) (re-frame/dispatch [:bad-move-request])
+      (= type :undo-request) (re-frame/dispatch [:undo-respond])
+      (= type :bad-undo-request) (re-frame/dispatch [:bad-undo-request])
+      (= type :undo-response) (re-frame/dispatch [:undo-handle-response msg])
+      (= type :bad-undo-response) (re-frame/dispatch [:bad-undo-response])
+      (= type :loser-forfeit) (re-frame/dispatch [:loser :forfeit])
+      (= type :winner-forfeit) (re-frame/dispatch [:winner :forfeit])
+      (= type :bad-forfeit-request) (re-frame/dispatch [:bad-forfeit-request])
+      (= type :leave) (re-frame/dispatch [:winner :leave])
+      (= type :bad-leave-request) (re-frame/dispatch [:bad-leave-request])
+      (= type :disconnect) (re-frame/dispatch [:winner :disconnect]))))
+
+(set! (.-onmessage db/conn) client-handle-response)
 
 (re-frame/reg-event-db
  ::initialize-db
  (fn [_ _]
    db/default-db))
+
+(re-frame/reg-event-fx
+ :bad-leave-request
+ (fn [cofx _]
+   {:db (:db cofx)}))
+
+(re-frame/reg-event-fx
+ :bad-forfeit-request
+ (fn [cofx _]
+   {:db (:db cofx)}))
+
+(re-frame/reg-event-fx
+ :bad-undo-response
+ (fn [cofx _]
+   {:db (:db cofx)}))
+
+(re-frame/reg-event-fx
+ :undo-handle-response
+ (fn [cofx [_ msg]]
+   {:db (:db cofx)}))
+
+(re-frame/reg-event-fx
+ :bad-undo-request
+ (fn [cofx _]
+   {:db (:db cofx)}))
+
+(re-frame/reg-event-fx
+ :undo-respond
+ (fn [cofx _]
+   {:db (:db cofx)}))
+
+(re-frame/reg-event-fx
+ :bad-move-request
+ (fn [cofx _]
+   {:db (:db cofx)}))
+
+(re-frame/reg-event-fx
+ :invalid-move
+ (fn [cofx [_ kind]]
+   (let [game (re-frame/subscribe [::subs/game])]
+     {:db
+      (assoc
+       (:db cofx)
+       :game (db/ChessGame.
+              (:team @game)
+              (pop (:history @game))
+              (:rules @game)
+              false
+              false
+              false)
+       :selection nil
+       :finding-game? false
+       :message "invalid move, try again")})))
+
+(re-frame/reg-event-fx
+ :opponent-moved
+ (fn [cofx [_ msg]]
+   (let [game (re-frame/subscribe [::subs/game])
+         history (:history @game)
+         cur-game (last history)
+         from-x (:x (:from msg))
+         from-y (:y (:from msg))
+         to-x (:x (:to msg))
+         to-y (:y (:to msg))]
+     (if (and from-x
+              from-y
+              to-x
+              to-y)
+       (let [from (chess/->Coord from-x from-y)
+             to (chess/->Coord to-x to-y)
+             move (chess/->Move from to)]
+         {:db
+          (assoc
+           (:db cofx)
+           :game (db/ChessGame.
+                  (:team @game)
+                  (conj
+                   history
+                   (assoc
+                    (chess/apply-move
+                     cur-game
+                     move)
+                    :last-move move))
+                  (:rules @game)
+                  false
+                  false
+                  false)
+           :selection nil      
+           :finding-game? false
+           :message "opponent moved, your turn")})
+       (throw (js/Error. "Couldn't read move from opponent."))))))
+
+(re-frame/reg-event-fx
+ :valid-move
+ (fn [cofx _]
+   (let [game (re-frame/subscribe [::subs/game])]
+     {:db
+      (assoc
+       (:db cofx)
+       :message (str
+                 "the move is valid, waiting for "
+                 (chess/team->string
+                  (chess/other-team (:team @game)))
+                 " to move"))})))
+
+(re-frame/reg-event-fx
+ :loser
+ (fn [cofx [_ kind]]
+   {:db
+    (assoc
+     (:db cofx)
+     :message "you lose")}))
+
+(re-frame/reg-event-fx
+ :winner
+ (fn [cofx [_ kind]]
+   {:db
+    (assoc
+     (:db cofx)
+     :message "you win")}))
+
+(re-frame/reg-event-fx
+ :bad-find-game
+ (fn [cofx _]
+   {:db
+    (assoc
+     (:db cofx)
+     :message "couldn't find game")}))
+
+(re-frame/reg-event-fx
+ :server-finding-game
+ (fn [cofx _]
+   {:db
+    (assoc
+     (:db cofx) 
+     :message "server is looking for an opponent")}))
+
+(re-frame/reg-event-fx
+ :start-game
+ (fn [cofx [_ msg]]
+   (let [game (re-frame/subscribe [::subs/game])
+         finding-game? (re-frame/subscribe [::subs/finding-game?])
+         team (keyword (:team msg))]
+     (if @game
+       (throw (js/Error. "Cannot start new game during an active game."))
+       (if-not @finding-game?
+         (throw (js/Error. "Cannot start new game without a request."))
+         (if (or (= team chess/WHITE)
+                 (= team chess/BLACK))
+           {:db
+            (assoc
+             (:db cofx)
+             :game (db/ChessGame.
+                    team
+                    [(assoc chess/default-game :last-move nil)]
+                    (chess/Rules. true true)
+                    false
+                    false
+                    false)
+             :finding-game? false
+             :selection nil
+             :message (str
+                       "game started, you are the "
+                       (chess/team->string team)
+                       " player"))}
+           (throw (js/Error. "New game with invalid team."))))))))
+                    
 
 (re-frame/reg-event-fx
  :find-game-click
@@ -26,11 +302,10 @@
            (.send
             db/conn
             (write-json-str
-             (clj->js
-              {:type :find-game
-               :rules
-               {:self-check? true
-                :en-passant? true}})))
+             {:type :find-game
+              :rules
+              {:self-check? true
+               :en-passant? true}}))
            {:db
             (assoc
              (:db cofx)
@@ -54,8 +329,7 @@
            (do
              (.send
               db/conn
-              (write-json-str
-               (clj->js {:type :undo-request})))
+              (write-json-str {:type :undo-request}))
              {:db
               (assoc
                (:db cofx)
@@ -131,10 +405,9 @@
                  (.send
                   db/conn
                   (write-json-str
-                   (clj->js
-                    {:type :move
-                     :from {:x selection :y selection}
-                     :to {:x view-pos :y view-pos}})))
+                   {:type :move
+                    :from {:x (:x selection) :y (:y selection)}
+                    :to {:x (:x view-pos) :y (:y view-pos)}}))
                  {:db
                   (assoc
                    (:db cofx)
@@ -147,7 +420,7 @@
                              current-game
                              move)
                             :last-move move))
-                          (:rules game)
+                          (:rules @game)
                           game-over?
                           false
                           true)

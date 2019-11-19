@@ -8,25 +8,27 @@
 
 ;; structure of messages received by server:
 ;;
-;; 1. Find a game
+;; Find a game
 ;; :type :find-game
-;;   :rules {...}
+;; :rules {...}
 ;;
-;; 2. Make a move
+;; Make a move
 ;; :type :move
-;;   :from {:x <int> :y <int>} :to {:x <int> :y <int>}
+;; :from {:x <int> :y <int>}
+;; :to {:x <int> :y <int>}
 ;;
-;; 3. Request an undo
+;; Request an undo
 ;; :type :undo-request
 ;;
-;; 4. Accept an undo
-;; :type :undo-accept
+;; Respond to an undo
+;; :type :undo-response
+;; :accept? true or false
 ;;
-;; 5. Forfeit the game
+;; Forfeit the game
 ;; :type :forfeit
 ;;
-;; 6. Return to lobby
-;; :type :return
+;; Return to lobby
+;; :type :leave
 
 ;; id is the game's unique ID
 ;; white and black are the two clients
@@ -67,8 +69,8 @@
 (defn game-get-opponent [game channel]
   (let [white (:white game)]
     (if (= white channel)
-      white
-      (:black game))))
+      (:black game)
+      white)))
 
 (defn game-get-team [game channel]
   (cond
@@ -100,8 +102,9 @@
                          (assoc lobbies rules new-lobby)
                          (assoc games new-game-id new-game))]
             (do
-              (send! channel (json/write-str {:type :new-game-black}))
-              (send! opponent (json/write-str {:type :new-game-white}))
+              (send! channel (json/write-str {:type :new-game :team :black}))
+              (send! opponent (json/write-str {:type :new-game :team :white}))
+              (info "new game for" channel "and" opponent)
               new-srv))
           ;; add them to the set of players looking for the game
           (let [new-lobby (union lobby #{channel})
@@ -120,8 +123,7 @@
 (defn server-handle-find-game [channel msg]
   (info channel "is looking for a game with rules" (:rules msg))
   (locking server
-    (vswap! server server-handle-find-game* channel msg)
-    (info @server)))
+    (vswap! server server-handle-find-game* channel msg)))
 
 (defn server-handle-move* [srv channel msg]
   (let [client-games (:client-games srv)
@@ -178,36 +180,40 @@
                                    new-history
                                    (chess/other-team team)
                                    o
-                                   nil))]
-                (if (or (= winner team) checkmate?)
-                  (do
+                                   nil))
+                    over? (or (= winner team) checkmate?)]
+                (do
+                  (send! channel (json/write-str {:type :valid-move}))
+                  (send!
+                   opponent
+                   (json/write-str
+                    {:type :opponent-moved
+                     :from {:x (:x from) :y (:y from)}
+                     :to {:x (:x to) :y (:y to)}}))
+                  (when (or (= winner team) checkmate?)
                     (send!
                      channel
-                     (json/write-str
-                      :type
-                      (if checkmate? :winner-checkmate :winner)))
+                     (if checkmate?
+                       (json/write-str {:type :winner-checkmate})
+                       (json/write-str {:type :winner})))
                     (send!
                      opponent
-                     (json/write-str
-                      :type
-                      (if checkmate? :loser-checkmate :loser)))
-                    (update-srv (update-game true)))
-                  (do
-                    (send! channel (json/write-str :type :valid-move))
-                    (send! opponent (json/write-str :type :opponent-moved))
-                    (update-srv (update-game false)))))
+                     (if checkmate?
+                       (json/write-str {:type :loser-checkmate})
+                       (json/write-str {:type :loser}))))
+                  (update-srv (update-game over?))))
               (do
-                (send! channel (json/write-str :type :invalid-move))
-                srv)))            
+                (send! channel (json/write-str {:type :invalid-move}))
+                srv)))
           (do
             (send!
              channel
-             (json/write-str
-              :type
-              (if piece :wrong-piece :no-piece)))
+             (if piece
+               (json/write-str {:type :wrong-piece})
+               (json/write-str {:type :no-piece})))
             srv)))
       (do
-        (send! channel (json/write-str :type :bad-move-request))
+        (send! channel (json/write-str {:type :bad-move-request}))
         srv))))
 
 (defn server-handle-move [channel msg]
@@ -283,14 +289,16 @@
       nil)))
 
 ;; client accepts the opponent's request for undo
-(defn server-handle-undo-accept* [srv channel msg]
+(defn server-handle-undo-response* [srv channel msg]
   (let [client-games (:client-games srv)
         games (:games srv)
         game-id (client-games channel)
         game (and game-id (games game-id))
         opponent (and game (game-get-opponent game channel))
-        undo (and game (:undo game))]
-    (if (and opponent
+        undo (and game (:undo game))
+        accept? (:accept? msg)]
+    (if (and (not (nil? accept?))
+             opponent
              undo
              (= undo opponent))
       (let [new-game (game-accept-undo game)]
@@ -301,19 +309,23 @@
                          (:lobbies srv)
                          (assoc games game-id new-game))]
             (do
-              (send! opponent (json/write-str {:type :undo-accept}))
+              (send!
+               opponent
+               (json/write-str
+                {:type :undo-response
+                 :accept? accept?}))
               new-srv))
           (do
-            (send! channel (json/write-str {:type :bad-undo-accept}))
+            (send! channel (json/write-str {:type :bad-undo-response}))
             srv)))
       (do
-        (send! channel (json/write-str {:type :bad-undo-accept}))
+        (send! channel (json/write-str {:type :bad-undo-response}))
         srv))))
 
-(defn server-handle-undo-accept [channel msg]
-  (info channel "accepted an undo")
+(defn server-handle-undo-response [channel msg]
+  (info channel "responded to an undo request")
   (locking server
-    (vswap! server server-handle-undo-accept* channel msg)))
+    (vswap! server server-handle-undo-response* channel msg)))
 
 ;; forfeit is possible at any time
 (defn server-handle-forfeit* [srv channel msg]
@@ -352,7 +364,7 @@
     (vswap! server server-handle-forfeit* channel msg)))
 
 ;; return to lobby should only be possible once the game has ended
-(defn server-handle-return* [srv channel msg]
+(defn server-handle-leave* [srv channel msg]
   (let [client-games (:client-games srv)
         games (:games srv)
         game-id (client-games channel)
@@ -378,16 +390,16 @@
                      (assoc games game-id new-game))
             opponent (if white white black)]
         (do
-          (send! opponent (json/write-str {:type :disconnect}))
+          (send! opponent (json/write-str {:type :leave}))
           new-srv))
       (do
-        (send! channel (json/write-str {:type :bad-return-request}))
+        (send! channel (json/write-str {:type :bad-leave-request}))
         srv))))
 
-(defn server-handle-return [channel msg]
+(defn server-handle-leave [channel msg]
   (info channel "is returning to lobby")
   (locking server
-    (vswap! server server-handle-return* channel msg)))
+    (vswap! server server-handle-leave* channel msg)))
 
 (defn value-reader [key value]
   (cond
@@ -402,9 +414,9 @@
       (= type :find-game) (server-handle-find-game channel msg)
       (= type :move) (server-handle-move channel msg)
       (= type :undo-request) (server-handle-undo-request channel msg)
-      (= type :undo-accept) (server-handle-undo-accept channel msg)
+      (= type :undo-response) (server-handle-undo-response channel msg)
       (= type :forfeit) (server-handle-forfeit channel msg)
-      (= type :return) (server-handle-return channel msg)
+      (= type :leave) (server-handle-leave channel msg)
       :else (info channel "sent invalid message" msg))))
 
 ;; a client disconnected, so end any games they were playing

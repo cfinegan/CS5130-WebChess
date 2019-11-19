@@ -72,3 +72,11 @@
      (if game
        (:last-move (last (:history db)))
        nil))))
+
+(re-frame/reg-sub
+ ::undo?
+ (fn [db]
+   (let [game (:game db)]
+     (if game
+       (:undo? game)
+       nil))))
