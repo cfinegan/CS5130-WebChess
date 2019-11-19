@@ -60,9 +60,7 @@
  (fn [db]
    (let [game (:game db)]
      (if game
-       (if (= 0 (mod (count (:history game)) 2))
-         chess/BLACK
-         chess/WHITE)
+       (chess/active-team (:history game))
        nil))))
 
 (re-frame/reg-sub

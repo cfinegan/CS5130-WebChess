@@ -342,6 +342,9 @@
   (cond (= team WHITE) BLACK
         (= team BLACK) WHITE))
 
+(defn active-team [history]
+  (if (= 0 (mod (count history) 2)) BLACK WHITE))
+
 (defn team->string [team]
   (cond (= team WHITE) "white"
         (= team BLACK) "black"))

@@ -32,6 +32,8 @@
 
 ;; id is the game's unique ID
 ;; white and black are the two clients
+;; TOOD: Storing active-team here isn't necessary, the active team can
+;; be inferred from the game history by calling chess/active-team.
 (defrecord ChessGame [id white black history active-team game-over? undo])
 
 ;; clients is the set of all currently connected clients
