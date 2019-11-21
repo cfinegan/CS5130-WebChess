@@ -1,4 +1,4 @@
-(ns chess.test.config)
+(ns chess.config)
 
 (def debug?
   ^boolean goog.DEBUG)
