@@ -7,5 +7,4 @@
 (re-frame/reg-sub
  ::page
  (fn [db]
-   (println db)
    (:page db)))
