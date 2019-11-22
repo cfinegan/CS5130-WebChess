@@ -20,9 +20,16 @@
  ::find-game
  (fn [cofx _]
    (do
-     (comment (.send db/conn
-                     (write-json-str
-                      {:type :find-game
-                       :rules {:self-check? true
-                               :en-passant? true}})))
+     (.send db/conn
+            (write-json-str
+             {:type :find-game
+              :rules {:self-check? true
+                      :en-passant? true}}))
      {:db (assoc (:db cofx) :finding-game? true)})))
+
+(reg-lobby-event-fx
+ ::bad-find-game
+ (fn [cofx _]
+   (println "bad find game")
+   {:db (assoc (:db cofx) :finding-game? false)}))
+

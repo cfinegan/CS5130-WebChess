@@ -3,6 +3,7 @@
    [re-frame.core :as re-frame]
    [chess.subs :as subs]
    [chess.lobby.views :as lobby-views]
+   [chess.match.views :as match-views]
    [chess.chess :as chess]
    [chess.macros :refer-macros [forv]]
    ))
@@ -12,4 +13,5 @@
     [:div {:class "container mt-3  p-4 rounded"
            :style {:background-color "#eee"}}
      (cond (= page :lobby) (lobby-views/main-panel)
+           (= page :match) (match-views/main-panel)
            :else (throw (js/Error. (str "Invalid page: " page))))]))
