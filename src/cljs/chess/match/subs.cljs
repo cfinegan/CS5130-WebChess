@@ -21,3 +21,11 @@
  ::team
  (fn [db]
    (:team db)))
+
+(reg-match-sub
+ ::active-team
+ (fn [db]
+   (let [history (:history db)]
+     (if (= 0 (mod (count history) 2))
+       chess/BLACK
+       chess/WHITE))))

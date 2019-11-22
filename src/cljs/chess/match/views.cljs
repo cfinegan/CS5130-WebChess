@@ -60,7 +60,17 @@
                           {:__html (if piece
                                      (piece->unicode piece)
                                      "&nbsp;")}}]))])]]]))
+
+(defn whos-turn-panel []
+  (let [team @(re-frame/subscribe [::subs/team])
+        active-team @(re-frame/subscribe [::subs/active-team])]
+    [:div
+     (if (= team active-team)
+       "It's your turn."
+       "It's your opponent's turn, please wait.")]))
     
 (defn main-panel []
   [:div
+   (whos-turn-panel)
+   [:br]
    (board-panel)])

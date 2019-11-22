@@ -19,7 +19,7 @@
                  :page :match
                  :lobby nil
                  :match {:history [chess/default-game]
-                         :team team
+                         :team (keyword team)
                          :selection nil})})))
 
 (defn read-json-response [r]
