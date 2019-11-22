@@ -23,6 +23,11 @@
               (= type chess/KNIGHT) "&#x265E;"
               (= type chess/PAWN) "&#x265F;")))
 
+(defn tile-color [x y]
+  (if (= 0 (mod (+ x y) 2))
+    "#f7f2f0"
+    "#ffffff"))
+
 (defn make-board-on-click [x y]
   (fn [e]
     (.preventDefault e)
@@ -30,7 +35,7 @@
 
 (defn board-panel []
   (let [history @(re-frame/subscribe [::subs/history])
-        selection @(re-frame/subscribe [::subs/selection])
+        {sel-pos :pos} @(re-frame/subscribe [::subs/selection])
         team @(re-frame/subscribe [::subs/team])
         board (:board (last history))
         rotate? (= team chess/BLACK)
@@ -46,8 +51,11 @@
             `[:tr
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
-                        piece (board pos)]
+                        piece (board pos)
+                        bg (cond (= sel-pos pos) "#f3f781"
+                                 :else (tile-color j i))]
                     [:td {:on-click (make-board-on-click j i)
+                          :style {:background-color bg}
                           :dangerouslySetInnerHTML
                           {:__html (if piece
                                      (piece->unicode piece)

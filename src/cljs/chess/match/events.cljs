@@ -1,6 +1,7 @@
 (ns chess.match.events
   (:require
    [re-frame.core :as re-frame]
+   [chess.chess :as chess]
    ))
 
 (defn reg-match-event-fx [id f]
@@ -15,5 +16,4 @@
 (reg-match-event-fx
  ::board-click
  (fn [cofx [_ x y]]
-   (println (str "user clicked (" x ", " y ")"))
-   {:db (:db cofx)}))
+   {:db (assoc (:db cofx) :selection {:pos (chess/->Coord x y)})}))
