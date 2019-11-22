@@ -16,3 +16,8 @@
  ::history
  (fn [db]
    (:history db)))
+
+(reg-match-sub
+ ::team
+ (fn [db]
+   (:team db)))
