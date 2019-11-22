@@ -4,7 +4,7 @@
    [chess.db :as db]
    ))
 
-(defn write-json [obj]
+(defn write-json-str [obj]
   (.stringify js/JSON (clj->js obj)))
 
 (re-frame/reg-event-fx
