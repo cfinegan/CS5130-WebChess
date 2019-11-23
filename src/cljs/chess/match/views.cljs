@@ -23,10 +23,12 @@
               (= type chess/KNIGHT) "&#x265E;"
               (= type chess/PAWN) "&#x265F;")))
 
-(defn tile-class [x y]
-  (if (= 0 (mod (+ x y) 2))
-    "tile-dark"
-    "tile-light"))
+(defn tile-class [pos selection]
+  (let [{sel-pos :pos valid-moves :valid-moves} selection]
+    (cond (= sel-pos pos) "tile-selected"
+          (some #(= pos %) valid-moves) "tile-valid"
+          (= 0 (mod (+ (:x pos) (:y pos)) 2)) "tile-dark"
+          :else "tile-light")))
 
 (defn make-board-on-click [x y]
   (fn [e]
@@ -36,7 +38,6 @@
 (defn board-panel []
   (let [history @(re-frame/subscribe [::subs/history])
         selection @(re-frame/subscribe [::subs/selection])
-        {sel-pos :pos valid-moves :valid-moves} selection
         team @(re-frame/subscribe [::subs/team])
         board (:board (last history))
         rotate? (= team chess/BLACK)
@@ -49,10 +50,7 @@
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        bg-class (cond
-                                   (= sel-pos pos) "tile-selected"
-                                   (some #(= pos %) valid-moves) "tile-valid"
-                                   :else (tile-class j i))]
+                        bg-class (tile-class pos selection)]
                     [:td {:on-click (make-board-on-click j i)
                           :class bg-class
                           :dangerouslySetInnerHTML
