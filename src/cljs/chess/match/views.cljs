@@ -35,7 +35,8 @@
 
 (defn board-panel []
   (let [history @(re-frame/subscribe [::subs/history])
-        {sel-pos :pos} @(re-frame/subscribe [::subs/selection])
+        selection @(re-frame/subscribe [::subs/selection])
+        {sel-pos :pos valid-moves :valid-moves} selection
         team @(re-frame/subscribe [::subs/team])
         board (:board (last history))
         rotate? (= team chess/BLACK)
@@ -48,8 +49,10 @@
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        bg-class (cond (= sel-pos pos) "tile-selected"
-                                    :else (tile-class j i))]
+                        bg-class (cond
+                                   (= sel-pos pos) "tile-selected"
+                                   (some #(= pos %) valid-moves) "tile-valid"
+                                   :else (tile-class j i))]
                     [:td {:on-click (make-board-on-click j i)
                           :class bg-class
                           :dangerouslySetInnerHTML
