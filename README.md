@@ -6,10 +6,7 @@ A [re-frame](https://github.com/Day8/re-frame) application designed to play ches
 
 ### Run application:
 
-```
-lein clean
-lein dev
-```
+Run `lein serv` in one terminal (to start the server) and then `lein dev` to start shadow-cljs.
 
 shadow-cljs will automatically push cljs changes to the browser.
 
@@ -31,14 +28,15 @@ lein prod
 
 ### Test the client app:
 
-Open `resources/public/index.html` in your browser. Each instance of this app will be a unique client for the server, so you can play against yourself if you want to test the functionality.
+Open `resources/public/index.html` in your browser.
 
 
 ## TODO
 
-- Add caching for valid moves so they're only calculated once per selection (low priority)
-- replace the text/table board with a graphical one (probably want to still use an HTML table, but remove all the borders/padding and put the tile IMGs inside)
-- Add style to the page (!!!)
-- Finish debugging server logic
-- Finish client logic for re-frame application
-- Add selection of rules for re-frame application
+- Make the lobby use HTTP rather than WebSocket.
+- Change the lobby to display open games, rather than do matchmaking.
+- Nail down what rules we want to be configurable when creating a match.
+- Add routing to both the server & client.
+- Add server & client logic for synchronizing game state between the opponents.
+- Better graphics for the game board.
+- Better styling overall.
