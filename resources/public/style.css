@@ -1,1 +1,14 @@
-body {background-color: white;}
+.tile-dark { background-color: #f7f2f0; }
+
+.tile-light { background-color: #ffffff; }
+
+.tile-selected { background-color: #f3f781; }
+
+.tile-valid { background-color: #2eccfa; }
+
+.board-pane {
+		table-layout: fixed;
+		width: 350px;
+		height: 300px;
+		text-align: center;
+}

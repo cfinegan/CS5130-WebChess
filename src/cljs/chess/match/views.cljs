@@ -23,10 +23,10 @@
               (= type chess/KNIGHT) "&#x265E;"
               (= type chess/PAWN) "&#x265F;")))
 
-(defn tile-color [x y]
+(defn tile-class [x y]
   (if (= 0 (mod (+ x y) 2))
-    "#f7f2f0"
-    "#ffffff"))
+    "tile-dark"
+    "tile-light"))
 
 (defn make-board-on-click [x y]
   (fn [e]
@@ -41,21 +41,17 @@
         rotate? (= team chess/BLACK)
         idxs (if rotate? (reverse (range 8)) (range 8))]
     [:div
-     [:table {:border 1
-              :style {:table-layout "fixed"
-                      :width "350px"
-                      :height "300px"
-                      :text-align "center"}}
+     [:table {:class "board-pane"}
       `[:tbody
         ~@(forv [i idxs]
             `[:tr
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        bg (cond (= sel-pos pos) "#f3f781"
-                                 :else (tile-color j i))]
+                        bg-class (cond (= sel-pos pos) "tile-selected"
+                                    :else (tile-class j i))]
                     [:td {:on-click (make-board-on-click j i)
-                          :style {:background-color bg}
+                          :class bg-class
                           :dangerouslySetInnerHTML
                           {:__html (if piece
                                      (piece->unicode piece)
