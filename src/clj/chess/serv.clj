@@ -156,7 +156,7 @@
             cur-caps (:captures game)
             piece (cur-board from)]
         (if (and piece (= (:team piece) team))
-          (let [moves (chess/valid-moves cur-board from cur-history true)]
+          (let [moves (chess/valid-moves cur-history from true)]
             (if (some #(= to %) moves)
               (let [move (chess/->Move from to)
                     new-game (assoc

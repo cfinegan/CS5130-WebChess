@@ -119,8 +119,9 @@
 ;; at 'coord'. We should probably return some bottom value
 ;; when the piece doesn't exist, distinct from '() since '()
 ;; is also returned when the piece exists but has no valid moves.
-(defn valid-moves [board {px :x py :y :as coord} history check-castle?]
-  (let [{team :team type :type moved? :moved? :as piece} (board coord)]
+(defn valid-moves [history {px :x py :y :as coord} check-castle?]
+  (let [board (:board (last history))
+        {team :team type :type moved? :moved? :as piece} (board coord)]
     (filter
      valid-coord?
      (cond
@@ -199,7 +200,7 @@
          (if check-castle?
            (let [enemy (find-team board (other-team team))
                  enemy-moves (flatten
-                              (map #(valid-moves board % history false) enemy))
+                              (map #(valid-moves history % false) enemy))
                  in-check? (loop [m enemy-moves]
                              (cond (empty? m) false
                                    (= coord (first m)) true
@@ -355,7 +356,7 @@
   (let [king (find-king board team)
         enemy (find-team board (other-team team))
         moves (flatten
-               (map #(valid-moves board % history true) enemy))]
+               (map #(valid-moves history % true) enemy))]
     (loop [m moves]
       (cond (empty? m) false
             (= king (first m)) true
@@ -367,7 +368,7 @@
   (let [friends (find-team board team)
         moves (flatten
                (map #(map (fn [to] (Move. % to))
-                          (valid-moves board % history true))
+                          (valid-moves history % true))
                     friends))
         futures (map #(apply-move game %) moves)]
     (reduce #(and %1 %2)
