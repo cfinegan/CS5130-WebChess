@@ -3,6 +3,7 @@
    [re-frame.core :as re-frame]
    [chess.db :as db]
    [chess.lobby.events :as lobby-events]
+   [chess.match.events :as match-events]
    [chess.chess :as chess]
    ))
 
@@ -20,6 +21,7 @@
                  :lobby nil
                  :match {:history [chess/default-game]
                          :team (keyword team)
+                         :server-forced-undo? false
                          :selection nil})})))
 
 (defn read-json-response [r]
@@ -30,6 +32,8 @@
         type (keyword (:type msg))]
     (cond
       (= type :bad-find-game) (re-frame/dispatch [::lobby-events/bad-find-game])
+      (= type :invalid-move) (re-frame/dispatch [::match-events/invalid-move])
+      (= type :opponent-moved) (re-frame/dispatch [::match-events/opponent-moved msg])
       (= type :new-game) (re-frame/dispatch [::join-game msg])
       :else (throw (js/Error. (str "invalid response type: " type))))))
 

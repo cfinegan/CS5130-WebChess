@@ -7,29 +7,22 @@
 (defn write-json-str [obj]
   (.stringify js/JSON (clj->js obj)))
 
-(defn reg-lobby-event-fx [id f]
-  (re-frame/reg-event-fx
-   id
-   (fn [cofx fx-vec]
-     (let [db (:db cofx)
-           cofx* (assoc cofx :db (:lobby db))
-           result (f cofx* fx-vec)]
-       (assoc result :db (assoc db :lobby (:db result)))))))
+(def lobby-path (re-frame/path :lobby))
 
-(reg-lobby-event-fx
+(re-frame/reg-event-fx
  ::find-game
+ [lobby-path]
  (fn [cofx _]
-   (do
-     (.send db/conn
-            (write-json-str
-             {:type :find-game
-              :rules {:self-check? true
-                      :en-passant? true}}))
-     {:db (assoc (:db cofx) :finding-game? true)})))
+   (.send db/conn
+          (write-json-str
+           {:type :find-game
+            :rules {:self-check? true
+                    :en-passant? true}}))
+   {:db (assoc (:db cofx) :finding-game? true)}))
 
-(reg-lobby-event-fx
+(re-frame/reg-event-fx
  ::bad-find-game
+ [lobby-path]
  (fn [cofx _]
    (println "bad find game")
    {:db (assoc (:db cofx) :finding-game? false)}))
-
