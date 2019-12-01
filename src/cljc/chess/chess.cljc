@@ -280,7 +280,7 @@
         [(-> board
              (dissoc from)
              (assoc to new-piece))
-         nil])
+         (board to)])
         
       :else
       [(-> board
