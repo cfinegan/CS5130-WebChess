@@ -23,6 +23,16 @@
    (:team db)))
 
 (reg-match-sub
+ ::check?
+ (fn [db]
+   (:check? db)))
+
+(reg-match-sub
+ ::game-over?
+ (fn [db] 
+   (:game-over? db)))
+
+(reg-match-sub
  ::active-team
  (fn [db]
    (let [history (:history db)]

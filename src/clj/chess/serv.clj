@@ -116,7 +116,7 @@
                          (assoc lobbies rules new-lobby)
                          games)]
             (do
-              (send! channel (json/write-str {:type :finding-game}))
+              ;; (send! channel (json/write-str {:type :finding-game}))
               new-srv))))
       (do
         (send! channel (json/write-str {:type :bad-find-game}))
@@ -164,8 +164,10 @@
                               :last-move move)
                     new-history (conj cur-history new-game)
                     winner (chess/winner (:captures new-game))
+                    check? (chess/check?
+                            (chess/other-team team)
+                            new-history)
                     checkmate? (chess/check-mate?
-                                new-game
                                 (chess/other-team team)
                                 new-history)
                     update-srv (fn [g]
@@ -185,24 +187,19 @@
                                    nil))
                     over? (or (= winner team) checkmate?)]
                 (do
-                  (send! channel (json/write-str {:type :valid-move}))
+                  (when over?
+                    (send!
+                     channel
+                     (json/write-str
+                      {:type :game-over})))
                   (send!
                    opponent
                    (json/write-str
                     {:type :opponent-moved
                      :from {:x (:x from) :y (:y from)}
-                     :to {:x (:x to) :y (:y to)}}))
-                  (when (or (= winner team) checkmate?)
-                    (send!
-                     channel
-                     (if checkmate?
-                       (json/write-str {:type :winner-checkmate})
-                       (json/write-str {:type :winner})))
-                    (send!
-                     opponent
-                     (if checkmate?
-                       (json/write-str {:type :loser-checkmate})
-                       (json/write-str {:type :loser}))))
+                     :to {:x (:x to) :y (:y to)}
+                     :check? check?
+                     :game-over? over?}))
                   (update-srv (update-game over?))))
               (do
                 (send! channel (json/write-str {:type :invalid-move}))

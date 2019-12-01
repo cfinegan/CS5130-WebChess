@@ -24,8 +24,15 @@
               (= type chess/PAWN) "&#x265F;")))
 
 (defn tile-class [pos selection]
-  (let [{sel-pos :pos valid-moves :valid-moves} selection]
+  (let [{sel-pos :pos
+         valid-moves :valid-moves
+         vuln-moves :vuln-moves
+         capture-moves :capture-moves} selection]
     (cond (= sel-pos pos) "tile-selected"
+          (and (some #(= pos %) vuln-moves)
+               (some #(= pos %) capture-moves)) "tile-vuln-capture"
+          (some #(= pos %) vuln-moves) "tile-vuln"
+          (some #(= pos %) capture-moves) "tile-capture"
           (some #(= pos %) valid-moves) "tile-valid"
           (= 0 (mod (+ (:x pos) (:y pos)) 2)) "tile-dark"
           :else "tile-light")))
@@ -60,11 +67,23 @@
 
 (defn whos-turn-panel []
   (let [team @(re-frame/subscribe [::subs/team])
-        active-team @(re-frame/subscribe [::subs/active-team])]
+        active-team @(re-frame/subscribe [::subs/active-team])
+        check? @(re-frame/subscribe [::subs/check?])
+        game-over? @(re-frame/subscribe [::subs/game-over?])]
     [:div
-     (if (= team active-team)
-       "It's your turn."
-       "It's your opponent's turn, please wait.")]))
+     (println game-over?)
+     (if game-over?
+       (let [history @(re-frame/subscribe [::subs/history])]
+         (if (or (chess/check-mate? team history)
+                 (= (chess/winner (:captures (last history)))
+                    (chess/other-team team)))
+           "Game is over (you lost)."
+           "Game is over (you won)."))
+       (if (= team active-team)
+         (if check?
+           "It's your turn (you are in check)."
+           "It's your turn.")
+         "It's your opponent's turn, please wait."))]))
     
 (defn main-panel []
   [:div

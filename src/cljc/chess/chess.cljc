@@ -41,24 +41,6 @@
   (and (< (:x coord) 8) (>= (:x coord) 0)
        (< (:y coord) 8) (>= (:y coord) 0)))
 
-(defn rotate-coord [coord]
-  (if (valid-coord? coord)
-    (Coord. (- 7 (:x coord))
-            (- 7 (:y coord)))
-    nil))
-
-(defn rotate-board* [board-seq]
-  (if (empty? board-seq)
-    nil
-    (let [[pos piece] (first board-seq)]
-      (assoc
-       (rotate-board* (rest board-seq))
-       (rotate-coord pos)
-       piece))))
-
-(defn rotate-board [board]
-  (rotate-board* (seq board)))
-
 (defn accum-tiles [x-xform y-xform board team start]
   (let [start-x (x-xform (:x start))
         start-y (y-xform (:y start))]
@@ -350,10 +332,10 @@
   (cond (= team WHITE) "white"
         (= team BLACK) "black"))
 
-(defn check? [{board :board caps :captures :as game}
-              team
-              history]
-  (let [king (find-king board team)
+(defn check? [team history]
+  (let [game (last history)
+        board (:board game)
+        king (find-king board team)
         enemy (find-team board (other-team team))
         moves (flatten
                (map #(valid-moves history % true) enemy))]
@@ -362,17 +344,17 @@
             (= king (first m)) true
             :else (recur (rest m))))))
 
-(defn check-mate? [{board :board caps :captures :as game}
-                   team
-                   history]
-  (let [friends (find-team board team)
+(defn check-mate? [team history]
+  (let [game (last history)
+        board (:board game)
+        friends (find-team board team)
         moves (flatten
                (map #(map (fn [to] (Move. % to))
                           (valid-moves history % true))
                     friends))
         futures (map #(apply-move game %) moves)]
     (reduce #(and %1 %2)
-            (map #(check? % team (conj history %))
+            (map #(check? team (conj history %))
                  futures))))
 
 (defn wpawn [id] (Piece. WHITE PAWN false id))

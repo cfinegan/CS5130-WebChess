@@ -6,6 +6,12 @@
 
 .tile-valid { background-color: #2eccfa; }
 
+.tile-vuln-capture { background-color: #b404ae }
+
+.tile-vuln { background-color: #fa5858 }
+
+.tile-capture { background-color: #2efe64 }
+
 .board-pane {
 		table-layout: fixed;
 		width: 350px;

@@ -22,7 +22,8 @@
                  :match {:history [chess/default-game]
                          :team (keyword team)
                          :server-forced-undo? false
-                         :selection nil})})))
+                         :selection nil
+                         :game-over? false})})))
 
 (defn read-json-response [r]
   (js->clj (.parse js/JSON (.-data r)) :keywordize-keys true))
@@ -33,6 +34,7 @@
     (cond
       (= type :bad-find-game) (re-frame/dispatch [::lobby-events/bad-find-game])
       (= type :invalid-move) (re-frame/dispatch [::match-events/invalid-move])
+      (= type :game-over) (re-frame/dispatch [::match-events/game-over])
       (= type :opponent-moved) (re-frame/dispatch [::match-events/opponent-moved msg])
       (= type :new-game) (re-frame/dispatch [::join-game msg])
       :else (throw (js/Error. (str "invalid response type: " type))))))
