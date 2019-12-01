@@ -71,7 +71,6 @@
         check? @(re-frame/subscribe [::subs/check?])
         game-over? @(re-frame/subscribe [::subs/game-over?])]
     [:div
-     (println game-over?)
      (if game-over?
        (let [history @(re-frame/subscribe [::subs/history])]
          (if (or (chess/check-mate? team history)

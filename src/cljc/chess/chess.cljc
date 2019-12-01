@@ -27,6 +27,8 @@
 
 (defrecord Rules [self-check? en-passant?])
 
+(defrecord Opportunities [vuln-moves capture-moves])
+
 (def WHITE :white)
 (def BLACK :black)
 
@@ -356,6 +358,69 @@
     (reduce #(and %1 %2)
             (map #(check? team (conj history %))
                  futures))))
+
+(defn opportunities [history team pos moves]
+  (let [game (last history)
+        board (:board game)
+        caps (:captures game)
+        piece (board pos)
+        enemy (find-team board (other-team team))
+        futures (map
+                 #(vector
+                   %
+                   (apply-move
+                    game
+                    (Move. pos %)))
+                 moves)
+        future-captures (map
+                         (fn [f]
+                           [(first f)
+                            (filter
+                             (fn [c]
+                               (not (some #(= c %) caps)))
+                             (:captures (peek f)))])
+                         futures)
+        enemy-moves (apply
+                     concat
+                     (map
+                      #(apply
+                        concat
+                        (map
+                         (fn [e]
+                           (map
+                            (fn [m] [% (Move. e m)])
+                            (valid-moves
+                             (conj history (peek %))
+                             e
+                             true)))
+                         enemy))
+                      futures))
+        enemy-futures (map
+                       #(vector
+                         (first (first %))
+                         (peek
+                          (apply-move-to-board
+                           (:board (peek (first %)))
+                           (peek %))))
+                       enemy-moves)
+        enemy-captures (filter
+                        #(and (peek %)
+                              (not (empty? (peek %)))
+                              (= (:id (peek %))
+                                 (:id piece)))
+                        enemy-futures)
+        vuln-moves (filter
+                    (fn [m] (some #(= m (first %)) enemy-captures))
+                    moves)
+        capture-moves (filter
+                       (fn [m]
+                         (some
+                          #(and
+                            (= m (first %))
+                            (not (empty? (peek %))))
+                          future-captures))
+                       moves)]
+    (Opportunities. vuln-moves capture-moves)))
 
 (defn wpawn [id] (Piece. WHITE PAWN false id))
 (defn wrook [id] (Piece. WHITE ROOK false id))

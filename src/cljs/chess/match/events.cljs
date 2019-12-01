@@ -60,67 +60,15 @@
          (if (and piece (= (:team piece) team))
            ;; Only select when the space holds a friendly piece.
            (let [valid-moves (chess/valid-moves history click-pos true)
-                 caps (:captures game)
-                 enemy (chess/find-team board (chess/other-team team))
-                 futures (map
-                          #(vector
-                            %
-                            (chess/apply-move
-                             game
-                             (chess/->Move click-pos %)))
-                          valid-moves)
-                 future-captures (map
-                                  (fn [f]
-                                    [(first f)
-                                     (filter
-                                      (fn [c]
-                                        (not (some #(= c %) caps)))
-                                      (:captures (peek f)))])
-                                  futures)
-                 enemy-moves (apply
-                              concat
-                              (map
-                               #(apply
-                                 concat
-                                 (map
-                                  (fn [e]
-                                    (map
-                                     (fn [m] [% (chess/->Move e m)])
-                                     (chess/valid-moves
-                                      (conj history (peek %))
-                                      e
-                                      true)))
-                                  enemy))
-                               futures))
-                 enemy-futures (map
-                                #(vector
-                                  (first (first %))
-                                  (peek
-                                   (chess/apply-move-to-board
-                                    (:board (peek (first %)))
-                                    (peek %))))
-                                enemy-moves)
-                 enemy-captures (filter
-                                 #(and (peek %)
-                                       (not (empty? (peek %)))
-                                       (= (:id (peek %))
-                                          (:id piece)))
-                                 enemy-futures)
-                 vuln-moves (filter
-                             (fn [m] (some #(= m (first %)) enemy-captures))
-                             valid-moves)
-                 capture-moves (filter
-                                (fn [m]
-                                  (some
-                                   #(and
-                                     (= m (first %))
-                                     (not (empty? (peek %))))
-                                   future-captures))
-                                valid-moves)]
+                 opps (chess/opportunities
+                       history
+                       team
+                       click-pos
+                       valid-moves)]
              {:db (assoc db :selection {:pos click-pos
                                         :valid-moves valid-moves
-                                        :vuln-moves vuln-moves
-                                        :capture-moves capture-moves})})
+                                        :vuln-moves (:vuln-moves opps)
+                                        :capture-moves (:capture-moves opps)})})
            ;; Otherwise do nothing
            ;; TODO: Add an invalid selection animation.
            {:db db}))))))
