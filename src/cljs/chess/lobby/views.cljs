@@ -16,7 +16,8 @@
        "Searching..."
        "Click to find a game")
      [:br]
+     [:br]
      [:button {:class "btn btn-dark"
                :on-click on-find-game-click
                :disabled finding-game?}
-      "find game"]]))
+      "Find game"]]))

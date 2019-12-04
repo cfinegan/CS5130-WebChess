@@ -29,7 +29,9 @@
        ;; Do nothing if it's the opponent's turn.
        ;; TODO: Add an invalid selection animation.
        (or (not (= team active-team))
-           (:game-over? db))
+           (:game-over? db)
+           (:undo? db)
+           (:opponent-undo? db))
        {:db db}
        ;; If a piece is already selected...
        selection
@@ -50,7 +52,8 @@
                             :to click-pos}))
                    {:db (assoc db
                                :history (conj history new-game)
-                               :selection nil)}))
+                               :selection nil
+                               :server-forced-undo? false)}))
                ;; Otherwise do nothing.
                ;; TODO: Add an invalid selection animation.
                {:db db}))))
@@ -65,10 +68,12 @@
                        team
                        click-pos
                        valid-moves)]
-             {:db (assoc db :selection {:pos click-pos
-                                        :valid-moves valid-moves
-                                        :vuln-moves (:vuln-moves opps)
-                                        :capture-moves (:capture-moves opps)})})
+             {:db (assoc db
+                         :selection {:pos click-pos
+                                     :valid-moves valid-moves
+                                     :vuln-moves (:vuln-moves opps)
+                                     :capture-moves (:capture-moves opps)}
+                         :server-forced-undo? false)})
            ;; Otherwise do nothing
            ;; TODO: Add an invalid selection animation.
            {:db db}))))))
@@ -108,6 +113,86 @@
 (re-frame/reg-event-fx
  ::game-over
  [match-path]
- (fn [cofx _]
+ (fn [cofx [_ msg]]
    (let [db (:db cofx)]
      {:db (assoc db :game-over? true)})))
+
+(re-frame/reg-event-fx
+ ::leave-game-click
+ [match-path]
+ (fn [cofx _]
+   (let [db (:db cofx)]
+     (do
+       (.send db/conn (write-json-str {:type :leave}))
+       {:db (assoc db :leaving? true)}))))
+
+(re-frame/reg-event-fx
+ ::forfeit-game-click
+ [match-path]
+ (fn [cofx _]
+   (let [db (:db cofx)]
+     (do
+       (.send db/conn (write-json-str {:type :forfeit}))
+       {:db (assoc db :forfeit? true)}))))
+
+(re-frame/reg-event-fx
+ ::bad-leave
+ [match-path]
+ (fn [cofx _]
+   (let [db (:db cofx)]
+     {:db (assoc db :leaving? false)})))
+
+(re-frame/reg-event-fx
+ ::bad-forfeit
+ [match-path]
+ (fn [cofx _]
+   (let [db (:db cofx)]
+     {:db (assoc db :forfeit? false)})))
+
+(re-frame/reg-event-fx
+ ::bad-undo
+ [match-path]
+ (fn [cofx _]
+   (let [db (:db cofx)]
+     {:db (assoc db :undo? false)})))
+
+(re-frame/reg-event-fx
+ ::request-undo-click
+ [match-path]
+ (fn [cofx _]
+   (let [db (:db cofx)]
+     (do
+       (.send db/conn (write-json-str {:type :undo-request}))
+       {:db (assoc db :undo? true)}))))
+
+(re-frame/reg-event-fx
+ ::respond-undo-click
+ [match-path]
+ (fn [cofx [_ accept?]]
+   (let [db (:db cofx)]
+     (do
+       (.send db/conn
+              (write-json-str {:type :undo-response
+                               :accept? accept?}))
+       {:db (assoc db :undo? true)}))))
+
+(re-frame/reg-event-fx
+ ::undo-request
+ [match-path]
+ (fn [cofx _]
+   (let [db (:db cofx)]
+     {:db (assoc db :opponent-undo? true)})))
+
+(re-frame/reg-event-fx
+ ::undo-response
+ [match-path]
+ (fn [cofx [_ msg]]
+   (let [db (:db cofx)
+         accept? (:accept? msg)
+         history (:history db)]
+     {:db (assoc db
+                 :history (if accept?
+                            (pop history)
+                            history)
+                 :undo? false
+                 :opponent-undo? false)})))

@@ -33,6 +33,31 @@
    (:game-over? db)))
 
 (reg-match-sub
+ ::leaving?
+ (fn [db]
+   (:leaving? db)))
+
+(reg-match-sub
+ ::forfeit?
+ (fn [db]
+   (:forfeit? db)))
+
+(reg-match-sub
+ ::server-forced-undo?
+ (fn [db]
+   (:server-forced-undo? db)))
+
+(reg-match-sub
+ ::undo?
+ (fn [db]
+   (:undo? db)))
+
+(reg-match-sub
+ ::opponent-undo?
+ (fn [db]
+   (:opponent-undo? db)))
+
+(reg-match-sub
  ::active-team
  (fn [db]
    (let [history (:history db)]

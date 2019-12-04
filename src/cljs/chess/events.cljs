@@ -23,7 +23,11 @@
                          :team (keyword team)
                          :server-forced-undo? false
                          :selection nil
-                         :game-over? false})})))
+                         :game-over? false
+                         :leaving? false
+                         :forfeit? false
+                         :undo? false
+                         :opponent-undo? false})})))
 
 (defn read-json-response [r]
   (js->clj (.parse js/JSON (.-data r)) :keywordize-keys true))
@@ -35,7 +39,15 @@
       (= type :bad-find-game) (re-frame/dispatch [::lobby-events/bad-find-game])
       (= type :invalid-move) (re-frame/dispatch [::match-events/invalid-move])
       (= type :game-over) (re-frame/dispatch [::match-events/game-over])
+      (= type :forfeit) (re-frame/dispatch [::match-events/game-over])
       (= type :opponent-moved) (re-frame/dispatch [::match-events/opponent-moved msg])
+      (= type :bad-leave-request) (re-frame/dispatch [::match-events/bad-leave])
+      (= type :bad-forfeit-request) (re-frame/dispatch [::match-events/bad-forfeit])
+      (= type :bad-undo-request) (re-frame/dispatch [::match-events/bad-undo])
+      (= type :bad-undo-response) (re-frame/dispatch [::match-events/bad-undo])
+      (= type :undo-request) (re-frame/dispatch [::match-events/undo-request])
+      (= type :undo-response) (re-frame/dispatch [::match-events/undo-response msg])
+      (= type :leave) (re-frame/dispatch [::initialize-db])
       (= type :new-game) (re-frame/dispatch [::join-game msg])
       :else (throw (js/Error. (str "invalid response type: " type))))))
 

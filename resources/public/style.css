@@ -13,9 +13,9 @@
 .tile-capture { background-color: #2efe64 }
 
 .board-pane {
-		table-layout: fixed;
-		width: 350px;
-		height: 300px;
-		text-align: center;
-		font-size: x-large;
+    table-layout: fixed;
+	width: 350px;
+	height: 300px;
+	text-align: center;
+	font-size: x-large;
 }

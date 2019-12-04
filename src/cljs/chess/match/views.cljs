@@ -69,23 +69,109 @@
   (let [team @(re-frame/subscribe [::subs/team])
         active-team @(re-frame/subscribe [::subs/active-team])
         check? @(re-frame/subscribe [::subs/check?])
-        game-over? @(re-frame/subscribe [::subs/game-over?])]
+        game-over? @(re-frame/subscribe [::subs/game-over?])
+        server-forced-undo? @(re-frame/subscribe [::subs/server-forced-undo?])
+        undo? @(re-frame/subscribe [::subs/undo?])
+        opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
     [:div
      (if game-over?
-       (let [history @(re-frame/subscribe [::subs/history])]
+       (let [history @(re-frame/subscribe [::subs/history])
+             forfeit? @(re-frame/subscribe [::subs/forfeit?])]
          (if (or (chess/check-mate? team history)
                  (= (chess/winner (:captures (last history)))
-                    (chess/other-team team)))
+                    (chess/other-team team))
+                 forfeit?)
            "Game is over (you lost)."
            "Game is over (you won)."))
-       (if (= team active-team)
-         (if check?
-           "It's your turn (you are in check)."
-           "It's your turn.")
-         "It's your opponent's turn, please wait."))]))
-    
+       (if (or undo? opponent-undo?)
+         (cond
+           (and undo? opponent-undo?) "Undoing the move."
+           undo? "Waiting for opponent to accept your undo request."
+           opponent-undo? "Opponent requested an undo, do you accept?")
+         (if (= team active-team)
+           (let [message (if server-forced-undo?
+                           "Invalid move, try again"
+                           "It's your turn")]
+             (if check?
+               (str message " (you are in check).")
+               (str message ".")))
+           "It's your opponent's turn, please wait.")))]))
+
+(defn leave-panel-on-click [e]
+  (.preventDefault e)
+  (re-frame/dispatch [::events/leave-game-click]))
+
+(defn leave-panel []
+  (let [leaving? @(re-frame/subscribe [::subs/leaving?])]
+    [:div
+     [:button
+      {:class "btn btn-dark"
+       :on-click leave-panel-on-click
+       :disabled leaving?}
+      "Return to lobby"]]))
+
+(defn forfeit-panel-on-click [e]
+  (.preventDefault e)
+  (re-frame/dispatch [::events/forfeit-game-click]))
+
+(defn forfeit-panel [] 
+  (let [forfeit? @(re-frame/subscribe [::subs/forfeit?])]
+    [:div
+     [:button
+      {:class "btn btn-dark"
+       :on-click forfeit-panel-on-click
+       :disabled forfeit?}
+      "Forfeit"]]))
+
+(defn undo-panel-on-click [e]
+  (.preventDefault e)
+  (re-frame/dispatch [::events/request-undo-click]))
+
+(defn undo-panel []
+  (let [undo? @(re-frame/subscribe [::subs/undo?])]
+    [:div
+     [:button
+      {:class "btn btn-dark"
+       :on-click undo-panel-on-click
+       :disabled undo?}
+      "Request undo"]]))
+
+(defn opponent-undo-panel-on-click-accept [e]
+  (.preventDefault e)
+  (re-frame/dispatch [::events/respond-undo-click true]))
+
+(defn opponent-undo-panel-on-click-reject [e]
+  (.preventDefault e)
+  (re-frame/dispatch [::events/respond-undo-click false]))
+
+(defn opponent-undo-panel []
+  (let [undo? @(re-frame/subscribe [::subs/undo?])]
+    [:div
+     [:button
+      {:class "btn btn-dark"
+       :on-click opponent-undo-panel-on-click-accept
+       :disabled undo?}
+      "Accept undo"]
+     [:br]
+     [:br]
+     [:button
+      {:class "btn btn-dark"
+       :on-click opponent-undo-panel-on-click-reject
+       :disabled undo?}
+      "Reject undo"]]))
+
 (defn main-panel []
-  [:div
-   (whos-turn-panel)
-   [:br]
-   (board-panel)])
+  (let [game-over? @(re-frame/subscribe [::subs/game-over?])
+        opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
+    [:div
+     (whos-turn-panel)
+     [:br]
+     (board-panel)
+     [:br]
+     (if opponent-undo?
+       (opponent-undo-panel)
+       (undo-panel))
+     [:br]
+     (if game-over?
+       (leave-panel)
+       (forfeit-panel))]))
