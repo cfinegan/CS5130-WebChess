@@ -160,7 +160,8 @@
      "Reject undo"]))
      
 (defn main-panel []
-  (let [game-over? @(re-frame/subscribe [::subs/game-over?])
+  (let [game-id @(re-frame/subscribe [::subs/game-id])
+        game-over? @(re-frame/subscribe [::subs/game-over?])
         opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])
         undo-elements (if-not game-over?
                         (if opponent-undo?
@@ -171,6 +172,8 @@
                           [(undo-panel) " "])
                         [])]
     [:div
+     [:b (str "Game #" game-id)]
+     [:br]
      (whos-turn-panel)
      [:br]
      (board-panel)

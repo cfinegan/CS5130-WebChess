@@ -58,6 +58,11 @@
    (:opponent-undo? db)))
 
 (reg-match-sub
+ ::game-id
+ (fn [db]
+   (:game-id db)))
+
+(reg-match-sub
  ::active-team
  (fn [db]
    (let [history (:history db)]

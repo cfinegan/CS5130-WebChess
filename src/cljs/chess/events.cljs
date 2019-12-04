@@ -27,7 +27,8 @@
                          :leaving? false
                          :forfeit? false
                          :undo? false
-                         :opponent-undo? false})})))
+                         :opponent-undo? false
+                         :game-id (:game-id msg)})})))
 
 (defn read-json-response [r]
   (js->clj (.parse js/JSON (.-data r)) :keywordize-keys true))
