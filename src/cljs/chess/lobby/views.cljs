@@ -12,6 +12,8 @@
 (defn main-panel []
   (let [finding-game? @(re-frame/subscribe [::subs/finding-game?])]
     [:div
+     [:b "WebChess"]
+     [:br]
      (if finding-game?
        "Searching..."
        "Find a game")
