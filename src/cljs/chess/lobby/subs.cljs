@@ -11,3 +11,8 @@
  ::finding-game?
  (fn [db]
    (:finding-game? db)))
+
+(reg-lobby-sub
+ ::rules
+ (fn [db]
+   (:rules db)))

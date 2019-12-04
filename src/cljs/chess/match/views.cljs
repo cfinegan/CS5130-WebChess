@@ -103,12 +103,11 @@
 
 (defn leave-panel []
   (let [leaving? @(re-frame/subscribe [::subs/leaving?])]
-    [:div
-     [:button
-      {:class "btn btn-dark"
-       :on-click leave-panel-on-click
-       :disabled leaving?}
-      "Return to lobby"]]))
+    [:button
+     {:class "btn btn-dark"
+      :on-click leave-panel-on-click
+      :disabled leaving?}
+     "Return to lobby"]))
 
 (defn forfeit-panel-on-click [e]
   (.preventDefault e)
@@ -116,26 +115,25 @@
 
 (defn forfeit-panel [] 
   (let [forfeit? @(re-frame/subscribe [::subs/forfeit?])]
-    [:div
-     [:button
-      {:class "btn btn-dark"
-       :on-click forfeit-panel-on-click
-       :disabled forfeit?}
-      "Forfeit"]]))
+    [:button
+     {:class "btn btn-dark"
+      :on-click forfeit-panel-on-click
+      :disabled forfeit?}
+     "Forfeit"]))
 
 (defn undo-panel-on-click [e]
   (.preventDefault e)
   (re-frame/dispatch [::events/request-undo-click]))
 
 (defn undo-panel []
-  (let [undo? @(re-frame/subscribe [::subs/undo?])]
-    [:div
-     [:br]
-     [:button
-      {:class "btn btn-dark"
-       :on-click undo-panel-on-click
-       :disabled undo?}
-      "Request undo"]]))
+  (let [undo? @(re-frame/subscribe [::subs/undo?])
+        history @(re-frame/subscribe [::subs/history])]
+    [:button
+     {:class "btn btn-dark"
+      :on-click undo-panel-on-click
+      :disabled (or undo?
+                    (<= (count history) 1))}
+     "Request undo"]))
 
 (defn opponent-undo-panel-on-click-accept [e]
   (.preventDefault e)
@@ -145,35 +143,42 @@
   (.preventDefault e)
   (re-frame/dispatch [::events/respond-undo-click false]))
 
-(defn opponent-undo-panel []
+(defn opponent-undo-panel-accept []
   (let [undo? @(re-frame/subscribe [::subs/undo?])]
-    [:div
-     [:br]
-     [:button
-      {:class "btn btn-dark"
-       :on-click opponent-undo-panel-on-click-accept
-       :disabled undo?}
-      "Accept undo"]
-     [:br]
-     [:br]
-     [:button
-      {:class "btn btn-dark"
-       :on-click opponent-undo-panel-on-click-reject
-       :disabled undo?}
-      "Reject undo"]]))
+    [:button
+     {:class "btn btn-dark"
+      :on-click opponent-undo-panel-on-click-accept
+      :disabled undo?}
+     "Accept undo"]))
 
+(defn opponent-undo-panel-reject []
+  (let [undo? @(re-frame/subscribe [::subs/undo?])]
+    [:button
+     {:class "btn btn-dark"
+      :on-click opponent-undo-panel-on-click-reject
+      :disabled undo?}
+     "Reject undo"]))
+     
 (defn main-panel []
   (let [game-over? @(re-frame/subscribe [::subs/game-over?])
-        opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
+        opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])
+        undo-elements (if-not game-over?
+                        (if opponent-undo?
+                          [(opponent-undo-panel-accept)
+                           " "
+                           (opponent-undo-panel-reject)
+                           " "]
+                          [(undo-panel) " "])
+                        [])]
     [:div
      (whos-turn-panel)
      [:br]
      (board-panel)
-     (when-not game-over?
-       (if opponent-undo?
-         (opponent-undo-panel)
-         (undo-panel)))
      [:br]
-     (if game-over?
-       (leave-panel)
-       (forfeit-panel))]))
+     [:div
+      ;; this will generate a warning from reagent (even with a key)
+      ;; it's not a huge deal since the size of this seq is fixed (and small)
+      (for [e undo-elements] e)
+      (if game-over?
+        (leave-panel)
+        (forfeit-panel))]]))

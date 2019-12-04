@@ -8,4 +8,5 @@
 (def default-db
   {:page :lobby
    :match nil
-   :lobby {:finding-game? false}})
+   :lobby {:finding-game? false
+           :rules (chess/Rules. false false)}})
