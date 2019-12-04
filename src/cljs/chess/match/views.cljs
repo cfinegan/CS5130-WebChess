@@ -69,15 +69,17 @@
   (let [team @(re-frame/subscribe [::subs/team])
         active-team @(re-frame/subscribe [::subs/active-team])
         check? @(re-frame/subscribe [::subs/check?])
+        rules @(re-frame/subscribe [::subs/rules])
         game-over? @(re-frame/subscribe [::subs/game-over?])
         server-forced-undo? @(re-frame/subscribe [::subs/server-forced-undo?])
+        server-forced-undo-msg @(re-frame/subscribe [::subs/server-forced-undo-msg])
         undo? @(re-frame/subscribe [::subs/undo?])
         opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
     [:div
      (if game-over?
        (let [history @(re-frame/subscribe [::subs/history])
              forfeit? @(re-frame/subscribe [::subs/forfeit?])]
-         (if (or (chess/check-mate? team history)
+         (if (or (chess/check-mate? rules team history)
                  (= (chess/winner (:captures (last history)))
                     (chess/other-team team))
                  forfeit?)
@@ -90,7 +92,7 @@
            opponent-undo? "Opponent requested an undo, do you accept?")
          (if (= team active-team)
            (let [message (if server-forced-undo?
-                           "Invalid move, try again"
+                           (str server-forced-undo-msg ", try again")
                            "It's your turn")]
              (if check?
                (str message " (you are in check).")

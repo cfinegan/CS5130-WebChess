@@ -48,6 +48,11 @@
    (:server-forced-undo? db)))
 
 (reg-match-sub
+ ::server-forced-undo-msg
+ (fn [db]
+   (:server-forced-undo-msg db)))
+
+(reg-match-sub
  ::undo?
  (fn [db]
    (:undo? db)))
@@ -61,6 +66,11 @@
  ::game-id
  (fn [db]
    (:game-id db)))
+
+(reg-match-sub
+ ::rules
+ (fn [db]
+   (:rules db)))
 
 (reg-match-sub
  ::active-team

@@ -98,31 +98,31 @@
                 new-lobby (disj lobby opponent)
                 new-game (game-create rules opponent channel)
                 new-game-id (:id new-game)
-                new-srv (ChessServer.
-                         (:clients srv)
-                         (-> client-games
-                             (assoc channel new-game-id)
-                             (assoc opponent new-game-id))
-                         (assoc lobbies rules new-lobby)
-                         (assoc games new-game-id new-game))]
+                new-srv (ChessServer. (:clients srv)
+                                      (-> client-games
+                                          (assoc channel new-game-id)
+                                          (assoc opponent new-game-id))
+                                      (assoc lobbies rules new-lobby)
+                                      (assoc games new-game-id new-game))]
             (do
               (send! channel
                      (json/write-str {:type :new-game
                                       :game-id new-game-id
+                                      :rules rules
                                       :team :black}))
               (send! opponent
                      (json/write-str {:type :new-game
                                       :game-id new-game-id
+                                      :rules rules
                                       :team :white}))
               (info "new game for" channel "and" opponent)
               new-srv))
           ;; add them to the set of players looking for the game
           (let [new-lobby (union lobby #{channel})
-                new-srv (ChessServer.
-                         (:clients srv)
-                         client-games
-                         (assoc lobbies rules new-lobby)
-                         games)]
+                new-srv (ChessServer. (:clients srv)
+                                      client-games
+                                      (assoc lobbies rules new-lobby)
+                                      games)]
             new-srv)))
       (do
         (send! channel
@@ -161,54 +161,66 @@
             cur-game (last cur-history)            
             cur-board (:board cur-game)
             cur-caps (:captures game)
+            rules (:rules game)
+            other-team (chess/other-team team)
             piece (cur-board from)]
         (if (and piece (= (:team piece) team))
-          (let [moves (chess/valid-moves cur-history from true)]
+          (let [moves (chess/valid-moves rules cur-history from true)]
             (if (some #(= to %) moves)
               (let [move (chess/->Move from to)
-                    new-game (assoc
-                              (chess/apply-move cur-game move)
-                              :last-move move)
-                    new-history (conj cur-history new-game)
-                    winner (chess/winner (:captures new-game))
-                    check? (chess/check?
-                            (chess/other-team team)
-                            new-history)
-                    checkmate? (chess/check-mate?
-                                (chess/other-team team)
-                                new-history)
-                    update-srv (fn [g]
-                                 (ChessServer. (:clients srv)
-                                               client-games
-                                               (:lobbies srv)
-                                               (assoc games game-id g)))
-                    update-game (fn [o]
-                                  (ChessGame. (:id game)
-                                              (:rules game)
-                                              (:white game)
-                                              (:black game)
-                                              new-history
-                                              o
-                                              nil))
-                    over? (or (= winner team) checkmate?)]
-                (do
-                  (when over?
+                    new-game (assoc (chess/apply-move cur-game move)
+                                    :last-move move)
+                    new-history (conj cur-history new-game)]
+                (if (and (not (:self-check? rules))
+                         (chess/check? rules
+                                       team
+                                       new-history))
+                  (do
                     (send! channel
-                           (json/write-str {:type :game-over})))
-                  (send! opponent
-                         (json/write-str {:type :opponent-moved
-                                          :from {:x (:x from) :y (:y from)}
-                                          :to {:x (:x to) :y (:y to)}
-                                          :check? check?
-                                          :game-over? over?}))
-                  (update-srv (update-game over?))))
+                           (json/write-str {:type :invalid-move
+                                            :msg "Cannot put yourself in check"}))
+                    srv)
+                  (let [winner (chess/winner (:captures new-game))
+                        check? (chess/check? rules
+                                             other-team
+                                             new-history)
+                        checkmate? (chess/check-mate? rules
+                                                      other-team
+                                                      new-history)
+                        update-srv (fn [g]
+                                     (ChessServer. (:clients srv)
+                                                   client-games
+                                                   (:lobbies srv)
+                                                   (assoc games game-id g)))
+                        update-game (fn [o]
+                                      (ChessGame. (:id game)
+                                                  (:rules game)
+                                                  (:white game)
+                                                  (:black game)
+                                                  new-history
+                                                  o
+                                                  nil))
+                        over? (or (= winner team) checkmate?)]
+                    (do
+                      (when over?
+                        (send! channel
+                               (json/write-str {:type :game-over})))
+                      (send! opponent
+                             (json/write-str {:type :opponent-moved
+                                              :from {:x (:x from) :y (:y from)}
+                                              :to {:x (:x to) :y (:y to)}
+                                              :check? check?
+                                              :game-over? over?}))
+                      (update-srv (update-game over?))))))
               (do
                 (send! channel
-                       (json/write-str {:type :invalid-move}))
+                       (json/write-str {:type :invalid-move
+                                        :msg "Illegal move"}))
                 srv)))
           (do
             (send! channel
-                   (json/write-str {:type :invalid-move}))
+                   (json/write-str {:type :invalid-move
+                                    :msg "Invalid piece"}))
             srv)))
       (do
         (info "bad move request" (game-active-team game))

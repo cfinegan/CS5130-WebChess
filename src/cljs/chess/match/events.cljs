@@ -17,6 +17,7 @@
  (fn [cofx [_ x y]]
    (let [db (:db cofx) 
          history (:history db)
+         rules (:rules db)
          game (last history)
          board (:board game)
          selection (:selection db)
@@ -53,7 +54,8 @@
                    {:db (assoc db
                                :history (conj history new-game)
                                :selection nil
-                               :server-forced-undo? false)}))
+                               :server-forced-undo? false
+                               :server-forced-undo-msg nil)}))
                ;; Otherwise do nothing.
                ;; TODO: Add an invalid selection animation.
                {:db db}))))
@@ -62,18 +64,34 @@
        (let [piece (board click-pos)]
          (if (and piece (= (:team piece) team))
            ;; Only select when the space holds a friendly piece.
-           (let [valid-moves (chess/valid-moves history click-pos true)
-                 opps (chess/opportunities
-                       history
-                       team
-                       click-pos
-                       valid-moves)]
+           (let [valid-moves (chess/valid-moves rules
+                                                history
+                                                click-pos
+                                                true)
+                 valid-moves* (if (:self-check? rules)
+                                valid-moves
+                                (filter #(not
+                                          (chess/check?
+                                           rules
+                                           team
+                                           (conj
+                                            history
+                                            (chess/apply-move
+                                             game
+                                             (chess/->Move click-pos %)))))
+                                        valid-moves))
+                 opps (chess/opportunities rules
+                                           history
+                                           team
+                                           click-pos
+                                           valid-moves*)]
              {:db (assoc db
                          :selection {:pos click-pos
-                                     :valid-moves valid-moves
+                                     :valid-moves valid-moves*
                                      :vuln-moves (:vuln-moves opps)
                                      :capture-moves (:capture-moves opps)}
-                         :server-forced-undo? false)})
+                         :server-forced-undo? false
+                         :server-forced-undo-msg nil)})
            ;; Otherwise do nothing
            ;; TODO: Add an invalid selection animation.
            {:db db}))))))
@@ -81,12 +99,13 @@
 (re-frame/reg-event-fx
  ::invalid-move
  [match-path]
- (fn [cofx _]
+ (fn [cofx [_ msg]]
    (let [db (:db cofx)
          history (:history db)]
      {:db (assoc db
                  :history (pop history)
-                 :server-forced-undo? true)})))
+                 :server-forced-undo? true
+                 :server-forced-undo-msg (:msg msg))})))
 
 (re-frame/reg-event-fx
  ::opponent-moved
@@ -119,7 +138,8 @@
                  :game-over? true
                  :undo? false
                  :opponent-undo? false
-                 :server-forced-undo? false)})))
+                 :server-forced-undo? false
+                 :server-forced-undo-msg nil)})))
 
 (re-frame/reg-event-fx
  ::leave-game-click

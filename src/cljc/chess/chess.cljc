@@ -103,7 +103,7 @@
 ;; at 'coord'. We should probably return some bottom value
 ;; when the piece doesn't exist, distinct from '() since '()
 ;; is also returned when the piece exists but has no valid moves.
-(defn valid-moves [history {px :x py :y :as coord} check-castle?]
+(defn valid-moves [rules history {px :x py :y :as coord} check-castle?]
   (let [board (:board (last history))
         {team :team type :type moved? :moved? :as piece} (board coord)]
     (filter
@@ -127,7 +127,8 @@
                        (list c) nil))
              regular-moves (concat fwd1 fwd2 ldiag rdiag)
              fifth-rank? (if (= team WHITE) (= py 3) (= py 4))] 
-         (if fifth-rank?
+         (if (and (:en-passant? rules)
+                  fifth-rank?)
            (let [adj-left-pos (Coord. (- px 1) py)
                  adj-right-pos (Coord. (+ px 1) py)
                  adj-left (board adj-left-pos)
@@ -184,7 +185,7 @@
          (if check-castle?
            (let [enemy (find-team board (other-team team))
                  enemy-moves (flatten
-                              (map #(valid-moves history % false) enemy))
+                              (map #(valid-moves rules history % false) enemy))
                  in-check? (loop [m enemy-moves]
                              (cond (empty? m) false
                                    (= coord (first m)) true
@@ -334,32 +335,32 @@
   (cond (= team WHITE) "white"
         (= team BLACK) "black"))
 
-(defn check? [team history]
+(defn check? [rules team history]
   (let [game (last history)
         board (:board game)
         king (find-king board team)
         enemy (find-team board (other-team team))
         moves (flatten
-               (map #(valid-moves history % true) enemy))]
+               (map #(valid-moves rules history % true) enemy))]
     (loop [m moves]
       (cond (empty? m) false
             (= king (first m)) true
             :else (recur (rest m))))))
 
-(defn check-mate? [team history]
+(defn check-mate? [rules team history]
   (let [game (last history)
         board (:board game)
         friends (find-team board team)
         moves (flatten
                (map #(map (fn [to] (Move. % to))
-                          (valid-moves history % true))
+                          (valid-moves rules history % true))
                     friends))
         futures (map #(apply-move game %) moves)]
     (reduce #(and %1 %2)
-            (map #(check? team (conj history %))
+            (map #(check? rules team (conj history %))
                  futures))))
 
-(defn opportunities [history team pos moves]
+(defn opportunities [rules history team pos moves]
   (let [game (last history)
         board (:board game)
         caps (:captures game)
@@ -390,6 +391,7 @@
                            (map
                             (fn [m] [% (Move. e m)])
                             (valid-moves
+                             rules
                              (conj history (peek %))
                              e
                              true)))
