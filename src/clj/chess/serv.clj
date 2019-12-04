@@ -333,8 +333,7 @@
         game (and game-id (games game-id))
         opponent (and game (game-get-opponent game channel))]
     (if (and opponent
-             (not (:game-over? game))
-             (not (:undo game)))
+             (not (:game-over? game)))
       (let [new-game (ChessGame.
                       (:id game)
                       (:white game)

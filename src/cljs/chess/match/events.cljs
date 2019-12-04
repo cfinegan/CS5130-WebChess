@@ -115,7 +115,11 @@
  [match-path]
  (fn [cofx [_ msg]]
    (let [db (:db cofx)]
-     {:db (assoc db :game-over? true)})))
+     {:db (assoc db
+                 :game-over? true
+                 :undo? false
+                 :opponent-undo? false
+                 :server-forced-undo? false)})))
 
 (re-frame/reg-event-fx
  ::leave-game-click

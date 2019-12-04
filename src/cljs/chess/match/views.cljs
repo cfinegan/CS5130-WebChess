@@ -130,6 +130,7 @@
 (defn undo-panel []
   (let [undo? @(re-frame/subscribe [::subs/undo?])]
     [:div
+     [:br]
      [:button
       {:class "btn btn-dark"
        :on-click undo-panel-on-click
@@ -147,6 +148,7 @@
 (defn opponent-undo-panel []
   (let [undo? @(re-frame/subscribe [::subs/undo?])]
     [:div
+     [:br]
      [:button
       {:class "btn btn-dark"
        :on-click opponent-undo-panel-on-click-accept
@@ -167,10 +169,10 @@
      (whos-turn-panel)
      [:br]
      (board-panel)
-     [:br]
-     (if opponent-undo?
-       (opponent-undo-panel)
-       (undo-panel))
+     (when-not game-over?
+       (if opponent-undo?
+         (opponent-undo-panel)
+         (undo-panel)))
      [:br]
      (if game-over?
        (leave-panel)
