@@ -7,7 +7,7 @@
    [chess.match.events :as events]
    ))
 
-(defn piece->unicode [{team :team type :type}]
+(defn piece->unicode [team type]
   (cond (= team chess/WHITE)
         (cond (= type chess/KING) "&#x2654;"
               (= type chess/QUEEN) "&#x2655;"
@@ -22,6 +22,9 @@
               (= type chess/BISHOP) "&#x265D;"
               (= type chess/KNIGHT) "&#x265E;"
               (= type chess/PAWN) "&#x265F;")))
+
+(defn html-str [str]
+  [:span {:dangerouslySetInnerHTML {:__html str}}])
 
 (defn tile-class [pos selection]
   (let [{sel-pos :pos
@@ -59,11 +62,23 @@
                         piece (board pos)
                         bg-class (tile-class pos selection)]
                     [:td {:on-click (make-board-on-click j i)
-                          :class bg-class
-                          :dangerouslySetInnerHTML
-                          {:__html (if piece
-                                     (piece->unicode piece)
-                                     "&nbsp;")}}]))])]]]))
+                          :class bg-class}
+                     (html-str (if piece
+                                 (piece->unicode (:team piece) (:type piece))
+                                 "&nbsp;"))]))])]]]))
+
+(def type-order
+  [chess/PAWN chess/BISHOP chess/ROOK chess/KNIGHT chess/QUEEN])
+
+(defn captures-panel [team]
+  (let [history @(re-frame/subscribe [::subs/history])
+        game (last history)
+        caps (:captures game)]
+    `[:ul
+      ~@(forv [type type-order]
+          (let [num (caps [team type] 0)]
+            (when true ;;(not (= 0 num))
+              [:li (html-str (piece->unicode team type)) " x " num])))]))
 
 (defn whos-turn-panel []
   (let [team @(re-frame/subscribe [::subs/team])
@@ -174,12 +189,12 @@
                           [(undo-panel) " "])
                         [])]
     [:div
-     [:b (str "Game #" game-id)]
-     [:br]
-     (whos-turn-panel)
-     [:br]
-     (board-panel)
-     [:br]
+     [:div.row [:div.col [:b (str "Game #" game-id)]]]
+     [:div.row [:div.col (whos-turn-panel)]]
+     [:div.row
+      [:div.col-4 (board-panel)]
+      [:div.col-2 (captures-panel chess/WHITE)]
+      [:div.col-2 (captures-panel chess/BLACK)]]
      [:div
       ;; this will generate a warning from reagent (even with a key)
       ;; it's not a huge deal since the size of this seq is fixed (and small)
