@@ -187,12 +187,13 @@
       [:div.col-4 (board-panel)]
       [:div.col-2.border (captures-panel chess/WHITE)]
       [:div.col-2.border (captures-panel chess/BLACK)]]
-     [:div
-      (if game-over?
-        (leave-panel)
-        [:span
-         (if opponent-undo?
-           [:span (opponent-undo-panel-accept) " " (opponent-undo-panel-reject)]
-           [:span (undo-panel)])
-         " "
-         (forfeit-panel)])]]))
+     [:div.row
+      [:div.col
+       (if game-over?
+         (leave-panel)
+         [:span
+          (if opponent-undo?
+            [:span (opponent-undo-panel-accept) " " (opponent-undo-panel-reject)]
+            [:span (undo-panel)])
+          " "
+          (forfeit-panel)])]]]))
