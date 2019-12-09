@@ -74,7 +74,7 @@
   (let [history @(re-frame/subscribe [::subs/history])
         game (last history)
         caps (:captures game)]
-    `[:ul
+    `[:ul.captures-list
       ~@(forv [type type-order]
           (let [num (caps [team type] 0)]
             (when true ;;(not (= 0 num))

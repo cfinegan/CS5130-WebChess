@@ -33,6 +33,10 @@
 	user-select: none;
 }
 
+.captures-list {
+		list-style-type: none;
+}
+
 @media(min-width: 576px) {
 		.board-pane {
 				width: 300px;
