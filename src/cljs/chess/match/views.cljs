@@ -184,9 +184,11 @@
      [:div.row [:div.col [:b "Game #" game-id]]]
      [:div.row [:div.col (whos-turn-panel)]]
      [:div.row
-      [:div.col-4 (board-panel)]
-      [:div.col-2.border (captures-panel chess/WHITE)]
-      [:div.col-2.border (captures-panel chess/BLACK)]]
+      [:div.col (board-panel)]
+      [:div.col.captures
+       (captures-panel chess/WHITE)
+       [:hr]
+       (captures-panel chess/BLACK)]]
      [:div.row
       [:div.col
        (if game-over?
