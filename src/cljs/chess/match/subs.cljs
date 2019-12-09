@@ -13,6 +13,11 @@
    (:selection db)))
 
 (reg-match-sub
+ ::hover
+ (fn [db]
+   (:hover db)))
+
+(reg-match-sub
  ::history
  (fn [db]
    (:history db)))

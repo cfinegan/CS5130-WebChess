@@ -11,6 +11,12 @@
 
 (def match-path (re-frame/path :match))
 
+(re-frame/reg-event-db
+ ::board-hover
+ [match-path]
+ (fn [db [_ x y]]
+   (assoc db :hover (chess/->Coord x y))))
+
 (re-frame/reg-event-fx
  ::board-click
  [match-path]

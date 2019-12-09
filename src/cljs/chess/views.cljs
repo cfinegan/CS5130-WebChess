@@ -10,7 +10,7 @@
 
 (defn main-panel []
   (let [page @(re-frame/subscribe [::subs/page])]
-    [:div {:class "container mt-3  p-4 rounded border"
+    [:div {:class "container mt-3 p-4 rounded border"
            :style {:background-color "#eee"}}
      (cond (= page :lobby) (lobby-views/main-panel)
            (= page :match) (match-views/main-panel)
