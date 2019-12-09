@@ -68,7 +68,7 @@
                                  "&nbsp;"))]))])]]]))
 
 (def type-order
-  [chess/PAWN chess/BISHOP chess/ROOK chess/KNIGHT chess/QUEEN])
+  [chess/PAWN chess/ROOK chess/BISHOP chess/KNIGHT chess/QUEEN])
 
 (defn captures-panel [team]
   (let [history @(re-frame/subscribe [::subs/history])
@@ -183,7 +183,7 @@
     [:div
      [:div.row [:div.col [:b "Game #" game-id]]]
      [:div.row [:div.col (whos-turn-panel)]]
-     [:div.row
+     [:div.row.pt-3.pb-3
       [:div.col (board-panel)]
       [:div.col.captures
        (captures-panel chess/WHITE)
