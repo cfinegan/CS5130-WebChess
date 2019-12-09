@@ -53,7 +53,7 @@
         rotate? (= team chess/BLACK)
         idxs (if rotate? (reverse (range 8)) (range 8))]
     [:div
-     [:table {:class "board-pane"}
+     [:table.board-pane
       `[:tbody
         ~@(forv [i idxs]
             `[:tr
@@ -179,26 +179,20 @@
 (defn main-panel []
   (let [game-id @(re-frame/subscribe [::subs/game-id])
         game-over? @(re-frame/subscribe [::subs/game-over?])
-        opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])
-        undo-elements (if-not game-over?
-                        (if opponent-undo?
-                          [(opponent-undo-panel-accept)
-                           " "
-                           (opponent-undo-panel-reject)
-                           " "]
-                          [(undo-panel) " "])
-                        [])]
+        opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
     [:div
-     [:div.row [:div.col [:b (str "Game #" game-id)]]]
+     [:div.row [:div.col [:b "Game #" game-id]]]
      [:div.row [:div.col (whos-turn-panel)]]
      [:div.row
       [:div.col-4 (board-panel)]
-      [:div.col-2 (captures-panel chess/WHITE)]
-      [:div.col-2 (captures-panel chess/BLACK)]]
+      [:div.col-2.border (captures-panel chess/WHITE)]
+      [:div.col-2.border (captures-panel chess/BLACK)]]
      [:div
-      ;; this will generate a warning from reagent (even with a key)
-      ;; it's not a huge deal since the size of this seq is fixed (and small)
-      (for [e undo-elements] e)
       (if game-over?
         (leave-panel)
-        (forfeit-panel))]]))
+        [:span
+         (if opponent-undo?
+           [:span (opponent-undo-panel-accept) " " (opponent-undo-panel-reject)]
+           [:span (undo-panel)])
+         " "
+         (forfeit-panel)])]]))
