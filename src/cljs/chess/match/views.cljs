@@ -26,13 +26,12 @@
 (defn html-str [str]
   [:span {:dangerouslySetInnerHTML {:__html str}}])
 
-(defn tile-class [pos selection hover]
+(defn tile-class [pos selection]
   (let [{sel-pos :pos
          valid-moves :valid-moves
          vuln-moves :vuln-moves
          capture-moves :capture-moves} selection]
     (cond (= sel-pos pos) "tile-selected"
-          (= hover pos) "tile-hover"
           (and (some #(= pos %) vuln-moves)
                (some #(= pos %) capture-moves)) "tile-vuln-capture"
           (some #(= pos %) vuln-moves) "tile-vuln"
@@ -46,15 +45,9 @@
     (.preventDefault e)
     (re-frame/dispatch [::events/board-click x y])))
 
-(defn make-board-on-hover [x y]
-  (fn [e]
-    (.preventDefault e)
-    (re-frame/dispatch [::events/board-hover x y])))
-
 (defn board-panel []
   (let [history @(re-frame/subscribe [::subs/history])
         selection @(re-frame/subscribe [::subs/selection])
-        hover @(re-frame/subscribe [::subs/hover])
         team @(re-frame/subscribe [::subs/team])
         board (:board (last history))
         rotate? (= team chess/BLACK)
@@ -67,9 +60,8 @@
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        bg-class (tile-class pos selection hover)]
+                        bg-class (tile-class pos selection)]
                     [:td {:on-click (make-board-on-click j i)
-                          :on-mouse-over (make-board-on-hover j i)
                           :class bg-class}
                      (html-str (if piece
                                  (piece->unicode (:team piece) (:type piece))

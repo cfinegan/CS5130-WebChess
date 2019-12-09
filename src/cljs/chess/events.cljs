@@ -26,7 +26,6 @@
                          :server-forced-undo? false
                          :server-forced-undo-msg nil
                          :selection nil
-                         :hover nil
                          :game-over? false
                          :leaving? false
                          :forfeit? false

@@ -1,24 +1,30 @@
 .tile-dark { background-color: #f7f2f0; }
+.tile-dark:hover { background-color: #CECAC8; }
 
 .tile-light { background-color: #ffffff; }
+.tile-light:hover { background-color: #D5D5D5; }
 
 .tile-selected { background-color: #f3f781; }
+.tile-selected:hover { background-color: #CBCE6C; }
 
 .tile-valid { background-color: #2eccfa; }
+.tile-valid:hover { background-color: #26AAD0; }
 
 .tile-vuln-capture { background-color: #b404ae; }
+.tile-vuln-capture:hover { background-color: #960391; }
 
 .tile-vuln { background-color: #fa5858; }
+.tile-vuln:hover { background-color: #D04949; }
 
 .tile-capture { background-color: #2efe64; }
-
-.tile-hover { background-color: #cccccc; }
+.tile-capture:hover { background-color: #26D453; }
 
 .board-pane {
   table-layout: fixed;
 	width: 275px;
 	height: 150px;
 	text-align: center;
+	cursor: default;
 }
 
 @media(min-width: 576px) {
