@@ -34,8 +34,7 @@
            class (if (= 0 (mod (+ (:x pos) (:y pos)) 2))
                    "tile-dark"
                    "tile-light")]
-       (.setAttribute
-        elem "class" (str (.getAttribute elem "class") " " class))))
+       (.setAttribute elem "class" class)))
    250))
 
 (defn tile-class [pos selection bad-select]
