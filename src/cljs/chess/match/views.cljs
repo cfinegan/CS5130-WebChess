@@ -26,13 +26,26 @@
 (defn html-str [str]
   [:span {:dangerouslySetInnerHTML {:__html str}}])
 
+(defn set-style-timeout! [pos]
+  (js/setTimeout
+   (fn []
+     (let [elem (first (array-seq (.getElementsByClassName
+                             js/document "tile-bad-select")))
+           class (if (= 0 (mod (+ (:x pos) (:y pos)) 2))
+                   "tile-dark"
+                   "tile-light")]
+       (.setAttribute
+        elem "class" (str (.getAttribute elem "class") " " class))))
+   250))
+
 (defn tile-class [pos selection bad-select]
   (let [{sel-pos :pos
          valid-moves :valid-moves
          vuln-moves :vuln-moves
          capture-moves :capture-moves} selection]
     (cond (= sel-pos pos) "tile-selected"
-          (and bad-select (= bad-select pos)) "tile-bad-select"
+          (and bad-select (= bad-select pos))
+          (do (set-style-timeout! pos) "tile-bad-select")
           (and (some #(= pos %) vuln-moves)
                (some #(= pos %) capture-moves)) "tile-vuln-capture"
           (some #(= pos %) vuln-moves) "tile-vuln"
