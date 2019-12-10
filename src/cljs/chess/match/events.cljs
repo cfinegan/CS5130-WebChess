@@ -30,16 +30,15 @@
        ;; Do nothing if it's the opponent's turn.
        ;; TODO: Add an invalid selection animation.
        (or (not (= team active-team))
-           (:game-over? db)
            (:undo? db)
            (:opponent-undo? db))
-       {:db db}
+       {:db (assoc db :bad-select? click-pos)}
        ;; If a piece is already selected...
        selection
        (let [{sel-pos :pos valid-moves :valid-moves} selection]
          (if (= sel-pos click-pos)
            ;; Selecting the same piece twice de-selects.
-           {:db (assoc db :selection nil)}
+           {:db (assoc db :selection nil :bad-select? false)}
            ;; Else try to move the piece.
            (let [move (chess/->Move sel-pos click-pos)]
              (if (some #(= click-pos %) valid-moves)
@@ -54,11 +53,12 @@
                    {:db (assoc db
                                :history (conj history new-game)
                                :selection nil
+                               :bad-select? nil
                                :server-forced-undo? false
                                :server-forced-undo-msg nil)}))
                ;; Otherwise do nothing.
                ;; TODO: Add an invalid selection animation.
-               {:db db}))))
+               {:db (assoc db :bad-select? click-pos)}))))
        ;; Otherwise attempt to select.
        :else
        (let [piece (board click-pos)]
@@ -91,11 +91,12 @@
                                      :valid-moves valid-moves*
                                      :vuln-moves (:vuln-moves opps)
                                      :capture-moves (:capture-moves opps)}
+                         :bad-select? nil
                          :server-forced-undo? false
                          :server-forced-undo-msg nil)})
            ;; Otherwise do nothing
            ;; TODO: Add an invalid selection animation.
-           {:db db}))))))
+           {:db (assoc db :bad-select? click-pos)}))))))
 
 (re-frame/reg-event-fx
  ::invalid-move

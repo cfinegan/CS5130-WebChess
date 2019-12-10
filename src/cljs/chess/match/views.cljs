@@ -26,12 +26,13 @@
 (defn html-str [str]
   [:span {:dangerouslySetInnerHTML {:__html str}}])
 
-(defn tile-class [pos selection]
+(defn tile-class [pos selection bad-select]
   (let [{sel-pos :pos
          valid-moves :valid-moves
          vuln-moves :vuln-moves
          capture-moves :capture-moves} selection]
     (cond (= sel-pos pos) "tile-selected"
+          (and bad-select (= bad-select pos)) "tile-bad-select"
           (and (some #(= pos %) vuln-moves)
                (some #(= pos %) capture-moves)) "tile-vuln-capture"
           (some #(= pos %) vuln-moves) "tile-vuln"
@@ -48,6 +49,7 @@
 (defn board-panel []
   (let [history @(re-frame/subscribe [::subs/history])
         selection @(re-frame/subscribe [::subs/selection])
+        bad-select? @(re-frame/subscribe [::subs/bad-select?])
         team @(re-frame/subscribe [::subs/team])
         board (:board (last history))
         rotate? (= team chess/BLACK)
@@ -60,9 +62,12 @@
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        bg-class (tile-class pos selection)]
+                        bg-class (tile-class pos selection bad-select?)
+                        anim-class (if (and bad-select? (= pos bad-select?))
+                                     " tile-bad-select"
+                                     "")]
                     [:td {:on-click (make-board-on-click j i)
-                          :class bg-class}
+                          :class (str bg-class anim-class)}
                      (html-str (if piece
                                  (piece->unicode (:team piece) (:type piece))
                                  "&nbsp;"))]))])]]]))

@@ -19,6 +19,15 @@
 .tile-capture { background-color: #2efe64; }
 .tile-capture:hover { background-color: #26D453; }
 
+@keyframes bad-select {
+		from { background-color: red; }
+}
+
+.tile-bad-select {
+		animation-name: bad-select;
+		animation-duration: 0.25s;
+}
+
 .board-pane {
   table-layout: fixed;
 	width: 275px;

@@ -13,6 +13,11 @@
    (:selection db)))
 
 (reg-match-sub
+ ::bad-select?
+ (fn [db]
+   (:bad-select? db)))
+
+(reg-match-sub
  ::history
  (fn [db]
    (:history db)))
