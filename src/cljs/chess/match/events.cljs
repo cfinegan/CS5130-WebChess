@@ -27,8 +27,7 @@
                        chess/WHITE)
          click-pos (chess/->Coord x y)]
      (cond
-       ;; Do nothing if it's the opponent's turn.
-       ;; TODO: Add an invalid selection animation.
+       ;; Play invalid selection animation if it's the opponent's turn
        (or (not (= team active-team))
            (:undo? db)
            (:opponent-undo? db))
@@ -56,8 +55,7 @@
                                :bad-select? nil
                                :server-forced-undo? false
                                :server-forced-undo-msg nil)}))
-               ;; Otherwise do nothing.
-               ;; TODO: Add an invalid selection animation.
+               ;; Otherwise play invalid selection animation
                {:db (assoc db :bad-select? click-pos)}))))
        ;; Otherwise attempt to select.
        :else
@@ -94,8 +92,7 @@
                          :bad-select? nil
                          :server-forced-undo? false
                          :server-forced-undo-msg nil)})
-           ;; Otherwise do nothing
-           ;; TODO: Add an invalid selection animation.
+           ;; Otherwise play invalid selection animation.
            {:db (assoc db :bad-select? click-pos)}))))))
 
 (re-frame/reg-event-fx
