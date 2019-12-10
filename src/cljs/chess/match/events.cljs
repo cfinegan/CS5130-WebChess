@@ -80,11 +80,12 @@
                                              game
                                              (chess/->Move click-pos %)))))
                                         valid-moves))
-                 opps (chess/opportunities rules
-                                           history
-                                           team
-                                           click-pos
-                                           valid-moves*)]
+                 opps (when (:color-tiles? rules)
+                        (chess/opportunities rules
+                                             history
+                                             team
+                                             click-pos
+                                             valid-moves*))]
              {:db (assoc db
                          :selection {:pos click-pos
                                      :valid-moves valid-moves*

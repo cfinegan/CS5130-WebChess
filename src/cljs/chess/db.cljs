@@ -9,4 +9,4 @@
   {:page :lobby
    :match nil
    :lobby {:finding-game? false
-           :rules (chess/Rules. false false)}})
+           :rules (chess/Rules. false false true)}})

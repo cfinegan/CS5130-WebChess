@@ -25,7 +25,7 @@
 
 (defrecord Move [from to])
 
-(defrecord Rules [self-check? en-passant?])
+(defrecord Rules [self-check? en-passant? color-tiles?])
 
 (defrecord Opportunities [vuln-moves capture-moves])
 
