@@ -74,12 +74,9 @@
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        bg-class (tile-class pos selection bad-select?)
-                        anim-class (if (and bad-select? (= pos bad-select?))
-                                     " tile-bad-select"
-                                     "")]
+                        bg-class (tile-class pos selection bad-select?)]
                     [:td {:on-click (make-board-on-click j i)
-                          :class (str bg-class anim-class)}
+                          :class bg-class}
                      (html-str (if piece
                                  (piece->unicode (:team piece) (:type piece))
                                  "&nbsp;"))]))])]]]))
