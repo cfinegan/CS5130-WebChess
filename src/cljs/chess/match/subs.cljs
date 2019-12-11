@@ -73,6 +73,11 @@
    (:game-id db)))
 
 (reg-match-sub
+ ::game-name
+ (fn [db]
+   (:game-name db)))
+
+(reg-match-sub
  ::rules
  (fn [db]
    (:rules db)))

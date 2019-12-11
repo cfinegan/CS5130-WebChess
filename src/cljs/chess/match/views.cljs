@@ -192,10 +192,11 @@
      
 (defn main-panel []
   (let [game-id @(re-frame/subscribe [::subs/game-id])
+        game-name @(re-frame/subscribe [::subs/game-name])
         game-over? @(re-frame/subscribe [::subs/game-over?])
         opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
     [:div
-     [:div.row [:div.col [:b "Game #" game-id]]]
+     [:div.row [:div.col [:b game-name]]]
      [:div.row [:div.col (whos-turn-panel)]]
      [:div.row.pt-3.pb-3
       [:div.col (board-panel)]

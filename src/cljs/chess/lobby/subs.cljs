@@ -23,6 +23,11 @@
    (:games db)))
 
 (reg-lobby-sub
- ::wainting-for-join?
+ ::waiting-for-join?
  (fn [db]
-   (:games db)))
+   (:waiting-for-join? db)))
+
+(reg-lobby-sub
+ ::waiting-for-game-list?
+ (fn [db]
+   (:waiting-for-game-list? db)))
