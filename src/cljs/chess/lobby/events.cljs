@@ -16,7 +16,7 @@
  (fn [cofx [_ g]]
    (let [db (:db cofx)
          rules (:rules db)]
-     (do
+     (when-not (:joining-game? db)
        (.send db/conn
               (write-json-str
                {:type :find-game
@@ -75,7 +75,7 @@
  [lobby-path]
  (fn [cofx _]
    {:db (assoc (:db cofx)
-               :finding-game? false)}))
+               :joining-game? false)}))
 
 (re-frame/reg-event-fx
  ::bad-create-game
