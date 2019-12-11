@@ -8,11 +8,21 @@
   (re-frame/reg-sub id (fn [db] (f (:lobby db)))))
 
 (reg-lobby-sub
- ::finding-game?
+ ::joining-game?
  (fn [db]
-   (:finding-game? db)))
+   (:joining-game? db)))
 
 (reg-lobby-sub
  ::rules
  (fn [db]
    (:rules db)))
+
+(reg-lobby-sub
+ ::games
+ (fn [db]
+   (:games db)))
+
+(reg-lobby-sub
+ ::wainting-for-join?
+ (fn [db]
+   (:games db)))

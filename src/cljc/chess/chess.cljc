@@ -29,6 +29,8 @@
 
 (defrecord Opportunities [vuln-moves capture-moves])
 
+(defrecord LobbyGame [id name rules])
+
 (def WHITE :white)
 (def BLACK :black)
 
