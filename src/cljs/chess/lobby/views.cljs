@@ -1,6 +1,7 @@
 (ns chess.lobby.views
   (:require
    [re-frame.core :as re-frame]
+   [reagent.core :as reagent]
    [chess.lobby.subs :as subs]
    [chess.lobby.events :as events]
    [chess.macros :refer-macros [forv]]
@@ -30,56 +31,64 @@
       :disabled joining-game?}
      "Create game"]))
 
-(defn on-submit-game-click [e]
-  (.preventDefault e)
-  (re-frame/dispatch [::events/submit-game]))
+(defn on-submit-game-click [game-name]
+  (fn [e]
+    (.preventDefault e)
+    (re-frame/dispatch [::events/submit-game game-name])))
 
-(defn submit-game-button-panel []
+(defn submit-game-button-panel [game-name]
   (let [waiting-for-join? @(re-frame/subscribe [::subs/waiting-for-join?])]
     [:button
      {:class "btn btn-dark"
-      :on-click on-submit-game-click
+      :on-click (on-submit-game-click game-name)
       :disabled waiting-for-join?}
      "Submit"]))
 
-(defn create-game-panel []
-  (let [waiting-for-join? @(re-frame/subscribe [::subs/waiting-for-join?])
-        rules @(re-frame/subscribe [::subs/rules])]
-    [:div
-     "NAME GOES HERE"
-     [:br]
-     [:br]
-     [:input {:type :checkbox
-              :on-change (fn []
-                           (re-frame/dispatch
-                            [::events/boolean-rule-click
-                             :self-check?]))
-              :name "self-check-box"
-              :checked (:self-check? rules)}]
-     " "
-     [:label {:for "self-check-box"} "Self-check"]
-     [:br]
-     [:input {:type :checkbox
-              :on-change (fn []
-                           (re-frame/dispatch
-                            [::events/boolean-rule-click
-                             :en-passant?]))
-              :name "en-passant-box"
-              :checked (:en-passant? rules)}]
-     " "
-     [:label {:for "en-passant-box"} "En passant"]
-     [:br]
-     [:input {:type :checkbox
-              :on-change (fn []
-                           (re-frame/dispatch
-                            [::events/boolean-rule-click
-                             :color-tiles?]))
-              :name "color-tiles-box"
-              :checked (:color-tiles? rules)}]
-     " "
-     [:label {:for "color-tiles-box"} "Color tiles"]
-     [:br]
-     (submit-game-button-panel)]))
+(let [game-name (reagent/atom "")]
+  (defn create-game-panel []
+    (let [waiting-for-join? @(re-frame/subscribe [::subs/waiting-for-join?])
+          rules @(re-frame/subscribe [::subs/rules])]
+      [:div
+       [:br]
+       [:label {:for "game-name-field"} "Game name:"]
+       " "
+       [:input {:type :text
+                :value @game-name
+                :name "game-name-field"
+                :on-change #(reset! game-name (-> % .-target .-value))}]
+       [:br]
+       [:input {:type :checkbox
+                :on-change (fn []
+                             (re-frame/dispatch
+                              [::events/boolean-rule-click
+                               :self-check?]))
+                :name "self-check-box"
+                :checked (:self-check? rules)}]
+       " "
+       [:label {:for "self-check-box"} "Self-check"]
+       [:br]
+       [:input {:type :checkbox
+                :on-change (fn []
+                             (re-frame/dispatch
+                              [::events/boolean-rule-click
+                               :en-passant?]))
+                :name "en-passant-box"
+                :checked (:en-passant? rules)}]
+       " "
+       [:label {:for "en-passant-box"} "En passant"]
+       [:br]
+       [:input {:type :checkbox
+                :on-change (fn []
+                             (re-frame/dispatch
+                              [::events/boolean-rule-click
+                               :color-tiles?]))
+                :name "color-tiles-box"
+                :checked (:color-tiles? rules)}]
+       " "
+       [:label {:for "color-tiles-box"} "Color tiles"]
+       [:br]
+       [:br]
+       (submit-game-button-panel @game-name)])))
 
 (defn on-refresh-game-list-click [e]
   (.preventDefault e)
