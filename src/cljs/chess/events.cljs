@@ -51,6 +51,7 @@
                          :opponent-undo? false
                          :game-id game-id
                          :game-name game-name
+                         :legend-minimized? true
                          :rules rules})})))
 
 (defn read-json-response [r]

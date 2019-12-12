@@ -194,7 +194,37 @@
       :on-click opponent-undo-panel-on-click-reject
       :disabled undo?}
      "Reject undo"]))
-     
+
+(def legend-panel-info
+  [["#2eccfa" "A valid move"]
+   ["#fa5858" "A vulnerable move"]
+   ["#2efe64" "An opportunity"]
+   ["#b404ae" "An opportunity with a cost"]])
+
+(defn on-legend-header-click [e]
+  (.preventDefault e)
+  (re-frame/dispatch [::events/legend-toggle]))
+
+(defn legend-panel []
+  (let [rules @(re-frame/subscribe [::subs/rules])
+        minimized? @(re-frame/subscribe [::subs/legend-minimized?])
+        header-arrow (if minimized? "&#x25B8;" "&#x25BE;")]
+    (when (:color-tiles? rules)
+      [:div.pt-3.pb-3
+       [:hr]
+       [:h3.mb-0.p-1.pl-2.legend-header
+        {:on-click on-legend-header-click}
+        (html-str header-arrow) " color legend"]
+       (when (not minimized?)
+         [:table.mt-0.border.legend-table
+          `[:tbody
+            ~@(forv [[color desc] legend-panel-info]
+                [:tr
+                 [:td {:class "legend-color-col black-border"
+                       :style {:background-color color}}
+                      (html-str "&nbsp;")]
+                 [:td.pl-3.black-border desc]])]])])))
+
 (defn main-panel []
   (let [game-id @(re-frame/subscribe [::subs/game-id])
         game-name @(re-frame/subscribe [::subs/game-name])
@@ -218,4 +248,5 @@
             [:span (opponent-undo-panel-accept) " " (opponent-undo-panel-reject)]
             [:span (undo-panel)])
           " "
-          (forfeit-panel)])]]]))
+          (forfeit-panel)])]]
+     [:div.row [:div.col (legend-panel)]]]))

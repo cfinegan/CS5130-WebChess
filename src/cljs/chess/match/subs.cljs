@@ -89,3 +89,8 @@
      (if (= 0 (mod (count history) 2))
        chess/BLACK
        chess/WHITE))))
+
+(reg-match-sub
+ ::legend-minimized?
+ (fn [db]
+   (:legend-minimized? db)))

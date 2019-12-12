@@ -221,3 +221,9 @@
                             history)
                  :undo? false
                  :opponent-undo? false)})))
+
+(re-frame/reg-event-db
+ ::legend-toggle
+ [match-path]
+ (fn [db _]
+   (update-in db [:legend-minimized?] not)))

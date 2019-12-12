@@ -31,24 +31,6 @@
 		animation-duration: 0.25s;
 }
 
-.board-pane {
-  table-layout: fixed;
-	width: 275px;
-	height: 150px;
-	text-align: center;
-	cursor: default;
-	-webkit-touch-callout: none;
-	-webkit-user-select: none;
-	-khtml-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-}
-
-.captures-list {
-		list-style-type: none;
-}
-
 .rule-col:hover { background-color: #cccccc; }
 
 .join-col {
@@ -69,11 +51,54 @@
 		animation-duration: 0.4s;
 }
 
+.legend-header {
+		background-color: #cccccc;
+		cursor: pointer;
+		font-weight: bold;
+}
+
+.legend-table {
+		width: 100%;
+}
+
+.black-border {
+		border-style: solid;
+		border-width: 1px;
+		border-color: black;
+}
+
+.board-pane {
+  table-layout: fixed;
+	width: 275px;
+	height: 150px;
+	text-align: center;
+	cursor: default;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.captures-list {
+		list-style-type: none;
+}
+
+.legend-color-col {
+		width: 35px;
+		height: 19px;
+}
+
 @media(min-width: 576px) {
 		.board-pane {
 				width: 300px;
 				height: 250px;
 				font-size: large;
+		}
+		.legend-color-col {
+				width: 38px;
+				height: 31px;
 		}
 }
 
@@ -86,6 +111,10 @@
 		.captures {
 				font-size: large;
 		}
+		.legend-color-col {
+				width: 44px;
+				height: 38px;
+		}
 }
 
 @media(min-width: 992px) {
@@ -97,6 +126,10 @@
 		.captures {
 				font-size: large;
 		}
+		.legend-color-col {
+				width: 56px;
+				height: 50px;
+		}
 }
 
 @media(min-width: 1200px) {
@@ -107,5 +140,9 @@
 		}
 		.captures {
 				font-size: x-large;
+		}
+		.legend-color-col {
+				width: 69px;
+				height: 59px;
 		}
 }
