@@ -102,6 +102,9 @@
       :disabled waiting-for-game-list?}
      "Refresh"]))
 
+(defn bool-str [b]
+  (if b "enabled" "disabled"))
+
 (defn game-list-panel []
   (let [games @(re-frame/subscribe [::subs/games])]
     [:div
@@ -121,10 +124,10 @@
                 (let [rules (:rules g)]
                   [:tr
                    {:on-click (on-find-game-click g)}
-                   [:td (html-str (:name g))]
-                   [:td (html-str (:self-check? rules))]
-                   [:td (html-str (:en-passant? rules))]
-                   [:td (html-str (:color-tiles? rules))]]))]]))]))
+                   [:td (:name g)]
+                   [:td (bool-str (:self-check? rules))]
+                   [:td (bool-str (:en-passant? rules))]
+                   [:td (bool-str (:color-tiles? rules))]]))]]))]))
 
 (defn main-panel []
   (let [rules @(re-frame/subscribe [::subs/rules])]
