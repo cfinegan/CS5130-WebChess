@@ -32,7 +32,7 @@
    (let [db (:db cofx)
          rules (if (:rules db)
                  nil
-                 (chess/Rules. false false true))]
+                 (chess/Rules. false true true))]
      (do
        {:db (assoc db :rules rules)}))))
 
