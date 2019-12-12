@@ -21,8 +21,11 @@ body { background-color: #FCFBF8; }
 .tile-capture { background-color: #2efe64; }
 .tile-capture:hover { background-color: #26D453; }
 
-.tile-dark-last-move { background-color: #cecacb; }
-.tile-light-last-move { background-color: #d5d5d5; }
+.last-move {
+		border-style: dashed;
+		border-color: #b8c2b8;
+		border-width: 2px;
+}
 
 @keyframes bad-select {
 		from { background-color: red; }

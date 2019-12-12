@@ -52,7 +52,7 @@
           (some #(= pos %) capture-moves) "tile-capture"
           (some #(= pos %) valid-moves) "tile-valid"
           (or (= (:from last-move) pos) (= (:to last-move) pos))
-          (if dark? "tile-dark-last-move" "tile-light-last-move")
+          (if dark? "tile-dark last-move" "tile-light last-move")
           dark? "tile-dark"
           :else "tile-light")))
 
