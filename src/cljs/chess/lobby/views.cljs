@@ -129,15 +129,17 @@
           `[:tbody
             ~@(forv [g games]
                 (let [rules (:rules g)]
-                  [:tr
-                   [:td (:name g)]
+                  [:tr {:on-mouse-leave (make-on-rule-hover nil)}
+                   [:td  {:on-mouse-over (make-on-rule-hover nil)}
+                    (:name g)]
                    [:td.rule-col {:on-mouse-over (make-on-rule-hover :self-check?)}
                     (bool-str (:self-check? rules))]
                    [:td.rule-col {:on-mouse-over (make-on-rule-hover :en-passant?)}
                     (bool-str (:en-passant? rules))]
                    [:td.rule-col {:on-mouse-over (make-on-rule-hover :color-tiles?)}
                     (bool-str (:color-tiles? rules))]
-                   [:td.join-col {:on-click (on-find-game-click g)}
+                   [:td.join-col {:on-click (on-find-game-click g)
+                                  :on-mouse-over (make-on-rule-hover nil)}
                     "JOIN"]]))]]))]))
 
 (defn tooltip-panel []
@@ -145,13 +147,13 @@
     (when rule
       (cond
         (= rule :self-check?)
-        [:div [:h2 "self-check"]
+        [:div [:hr] [:h2 "self-check"]
          "When enabled, you can put yourself in check."]
          (= rule :en-passant?)
-         [:div [:h2 "en-passent"]
+         [:div [:hr] [:h2 "en-passent"]
           "Enable or disable an obscure rule about capturing pawns."]
          (= rule :color-tiles?)
-         [:div [:h2 "color tiles"]
+         [:div [:hr] [:h2 "color tiles"]
           "Color code potential moves according to their value."]))))
 
 (defn main-panel []
