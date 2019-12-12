@@ -37,8 +37,9 @@
        (.setAttribute elem "class" class)))
    250))
 
-(defn tile-class [pos selection bad-select]
-  (let [{sel-pos :pos
+(defn tile-class [pos selection bad-select last-move]
+  (let [dark? (= 0 (mod (+ (:x pos) (:y pos)) 2))
+        {sel-pos :pos
          valid-moves :valid-moves
          vuln-moves :vuln-moves
          capture-moves :capture-moves} selection]
@@ -50,7 +51,9 @@
           (some #(= pos %) vuln-moves) "tile-vuln"
           (some #(= pos %) capture-moves) "tile-capture"
           (some #(= pos %) valid-moves) "tile-valid"
-          (= 0 (mod (+ (:x pos) (:y pos)) 2)) "tile-dark"
+          (or (= (:from last-move) pos) (= (:to last-move) pos))
+          (if dark? "tile-dark-last-move" "tile-light-last-move")
+          dark? "tile-dark"
           :else "tile-light")))
 
 (defn make-board-on-click [x y]
@@ -63,7 +66,9 @@
         selection @(re-frame/subscribe [::subs/selection])
         bad-select? @(re-frame/subscribe [::subs/bad-select?])
         team @(re-frame/subscribe [::subs/team])
-        board (:board (last history))
+        game (last history)
+        board (:board game)
+        last-move (:last-move game)
         rotate? (= team chess/BLACK)
         idxs (if rotate? (reverse (range 8)) (range 8))]
     [:div
@@ -74,7 +79,7 @@
               ~@(forv [j idxs]
                   (let [pos (chess/->Coord j i)
                         piece (board pos)
-                        bg-class (tile-class pos selection bad-select?)]
+                        bg-class (tile-class pos selection bad-select? last-move)]
                     [:td {:on-click (make-board-on-click j i)
                           :class bg-class}
                      (html-str (if piece

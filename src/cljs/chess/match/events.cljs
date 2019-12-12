@@ -42,7 +42,8 @@
            (let [move (chess/->Move sel-pos click-pos)]
              (if (some #(= click-pos %) valid-moves)
                ;; Update game state if the move is valid
-               (let [new-game (chess/apply-move game move)]
+               (let [new-game (assoc (chess/apply-move game move)
+                                     :last-move move)]
                  (do
                    (.send db/conn
                           (write-json-str
@@ -122,7 +123,8 @@
          from (chess/->Coord from-x from-y)
          to (chess/->Coord to-x to-y)
          move (chess/->Move from to)
-         new-game (chess/apply-move game move)]
+         new-game (assoc (chess/apply-move game move)
+                         :last-move move)]
      {:db (assoc db
                  :history (conj history new-game)
                  :check? check?

@@ -19,6 +19,9 @@
 .tile-capture { background-color: #2efe64; }
 .tile-capture:hover { background-color: #26D453; }
 
+.tile-dark-last-move { background-color: #cecacb; }
+.tile-light-last-move { background-color: #d5d5d5; }
+
 @keyframes bad-select {
 		from { background-color: red; }
 }
