@@ -5,6 +5,7 @@
    [chess.lobby.events :as lobby-events]
    [chess.match.events :as match-events]
    [chess.chess :as chess]
+   [chess.db :as db]
    ))
 
 (defn write-json-str [obj]
@@ -13,6 +14,7 @@
 (re-frame/reg-event-db
  ::initialize-db
  (fn [_ _]
+   (.send db/conn (write-json-str {:type :refresh-game-list}))
    db/default-db))
 
 (re-frame/reg-event-db
@@ -78,5 +80,3 @@
       (= type :leave) (re-frame/dispatch [::return-to-lobby])
       (= type :new-game) (re-frame/dispatch [::join-game msg])
       :else (throw (js/Error. (str "invalid response type: " type))))))
-
-(set! (.-onmessage db/conn) client-handle-response)

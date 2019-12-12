@@ -5,6 +5,7 @@
    [chess.events :as events]
    [chess.views :as views]
    [chess.config :as config]
+   [chess.db :as db]
    ))
 
 (defn dev-setup []
@@ -17,6 +18,11 @@
                   (.getElementById js/document "app")))
 
 (defn init []
-  (re-frame/dispatch-sync [::events/initialize-db])
-  (dev-setup)
-  (mount-root))
+  (println "in init!!")
+  (set! db/conn (js/WebSocket. "ws://127.0.0.1:8080/ws"))
+  (set! (.-onopen db/conn)
+        (fn [_]
+          (set! (.-onmessage db/conn) events/client-handle-response)
+          (re-frame/dispatch-sync [::events/initialize-db])
+          (dev-setup)
+          (mount-root))))
