@@ -24,12 +24,13 @@
 
 (defn create-game-button-panel []
   (let [joining-game? @(re-frame/subscribe [::subs/joining-game?])
+        waiting-for-join? @(re-frame/subscribe [::subs/waiting-for-join?])
         rules @(re-frame/subscribe [::subs/rules])]
     [:button
      {:class "btn btn-dark"
       :on-click on-create-game-click
-      :disabled joining-game?}
-     "Create game"]))
+      :disabled (or joining-game? waiting-for-join?)}
+     (if rules "Return to Lobby" "Create game")]))
 
 (defn make-on-submit-game-click [game-name]
   (fn [e]
@@ -42,8 +43,8 @@
     [:button
      {:class "btn btn-dark"
       :on-click (make-on-submit-game-click game-name)
-      :disabled waiting-for-join?}
-     "Submit"]))
+      :disabled (or waiting-for-join? (= "" game-name))}
+     (if waiting-for-join? "Waiting for an opponenet..." "Submit")]))
 
 (defn create-game-panel []
   (let [waiting-for-join? @(re-frame/subscribe [::subs/waiting-for-join?])
