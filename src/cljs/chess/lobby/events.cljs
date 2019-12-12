@@ -84,6 +84,12 @@
    {:db (assoc (:db cofx)
                :waiting-for-join? false)}))
 
+(re-frame/reg-event-db
+ ::game-name-changed
+ [lobby-path]
+ (fn [db [_ name]]
+   (assoc db :game-name name)))
+
 (re-frame/reg-event-fx
  ::boolean-rule-click
  [lobby-path]
@@ -92,4 +98,3 @@
          rules (:rules db)]
      {:db (assoc db
                  :rules (update-in rules [key] not))})))
-                                      

@@ -11,4 +11,5 @@
    :lobby {:games []
            :joining-game? false
            :waiting-for-join? false
+           :game-name ""
            :rules nil}})

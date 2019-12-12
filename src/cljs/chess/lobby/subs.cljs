@@ -31,3 +31,8 @@
  ::waiting-for-game-list?
  (fn [db]
    (:waiting-for-game-list? db)))
+
+(reg-lobby-sub
+ ::game-name
+ (fn [db]
+   (:game-name db)))
