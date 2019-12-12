@@ -98,3 +98,9 @@
          rules (:rules db)]
      {:db (assoc db
                  :rules (update-in rules [key] not))})))
+
+(re-frame/reg-event-db
+ ::rule-mouse-over
+ [lobby-path]
+ (fn [db [_ rule]]
+   (assoc db :tooltip rule)))

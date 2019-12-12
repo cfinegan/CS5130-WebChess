@@ -25,7 +25,8 @@
               :waiting-for-join? false
               :waiting-for-game-list? true
               :game-name ""
-              :rules nil}})))
+              :rules nil
+              :tooltip nil}})))
     
 (re-frame/reg-event-fx
  ::join-game

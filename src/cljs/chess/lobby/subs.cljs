@@ -36,3 +36,8 @@
  ::game-name
  (fn [db]
    (:game-name db)))
+
+(reg-lobby-sub
+ ::tooltip
+ (fn [db]
+   (:tooltip db)))

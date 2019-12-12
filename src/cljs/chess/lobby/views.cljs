@@ -16,7 +16,7 @@
     (re-frame/dispatch [::events/find-game g])))
 
 (defn header-panel []
-  [:h1 "WebChess"])
+  [:div.pb-3 [:h1 "WebChess"]])
 
 (defn on-create-game-click [e]
   (.preventDefault e)
@@ -108,13 +108,17 @@
 (defn bool-str [b]
   (if b "enabled" "disabled"))
 
+(defn make-on-rule-hover [rule]
+  (fn [_]
+    (re-frame/dispatch [::events/rule-mouse-over rule])))
+
 (defn game-list-panel []
   (let [games @(re-frame/subscribe [::subs/games])]
-    [:div
+    [:div.pt-3.pb-3
      (when games
        (if (empty? games)
          "Sorry, no games! Try creating one or click 'Refresh'."
-         [:table
+         [:table.border.rounded
           {:class "table table-striped"}
           [:thead
            [:tr
@@ -128,9 +132,26 @@
                   [:tr
                    {:on-click (on-find-game-click g)}
                    [:td (:name g)]
-                   [:td (bool-str (:self-check? rules))]
-                   [:td (bool-str (:en-passant? rules))]
-                   [:td (bool-str (:color-tiles? rules))]]))]]))]))
+                   [:td.rule-col {:on-mouse-over (make-on-rule-hover :self-check?)}
+                    (bool-str (:self-check? rules))]
+                   [:td.rule-col {:on-mouse-over (make-on-rule-hover :en-passant?)}
+                    (bool-str (:en-passant? rules))]
+                   [:td.rule-col {:on-mouse-over (make-on-rule-hover :color-tiles?)}
+                    (bool-str (:color-tiles? rules))]]))]]))]))
+
+(defn tooltip-panel []
+  (let [rule @(re-frame/subscribe [::subs/tooltip])]
+    (when rule
+      (cond
+        (= rule :self-check?)
+        [:div [:h2 "self-check"]
+         "When enabled, you can put yourself in check."]
+         (= rule :en-passant?)
+         [:div [:h2 "en-passent"]
+          "Enable or disable an obscure rule about capturing pawns."]
+         (= rule :color-tiles?)
+         [:div [:h2 "color tiles"]
+          "Color code potential moves according to their value."]))))
 
 (defn main-panel []
   (let [rules @(re-frame/subscribe [::subs/rules])]
@@ -145,4 +166,5 @@
       [:div.col
        (if rules
          (create-game-panel)
-         (game-list-panel))]]]))
+         (game-list-panel))]]
+     [:div.row [:div.col (tooltip-panel)]]]))

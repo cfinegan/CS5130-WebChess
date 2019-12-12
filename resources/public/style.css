@@ -46,6 +46,8 @@
 		list-style-type: none;
 }
 
+.rule-col:hover { background-color: #cccccc; }
+
 @media(min-width: 576px) {
 		.board-pane {
 				width: 300px;
