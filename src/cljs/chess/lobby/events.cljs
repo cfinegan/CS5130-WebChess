@@ -58,7 +58,7 @@
        (.send db/conn
               (write-json-str
                {:type :refresh-game-list}))
-       {:db (assoc db :waiting-for-game-list? true)}))))                
+       {:db (assoc db :waiting-for-game-list? true)}))))
 
 (re-frame/reg-event-fx
  ::new-game-list
