@@ -139,7 +139,7 @@
                     (bool-str (:en-passant? rules))]
                    [:td.rule-col {:on-mouse-over (make-on-rule-hover :color-tiles?)}
                     (bool-str (:color-tiles? rules))]
-                   [:td.join-col {:on-click (on-find-game-click g)
+                   [:td.join-col.rounded-lg {:on-click (on-find-game-click g)
                                   :on-mouse-over (make-on-rule-hover nil)}
                     "JOIN"]]))]]))]))
 
