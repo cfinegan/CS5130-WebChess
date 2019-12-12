@@ -44,7 +44,7 @@
      {:class "btn btn-dark"
       :on-click (make-on-submit-game-click game-name)
       :disabled (or waiting-for-join? (= "" game-name))}
-     (if waiting-for-join? "Waiting for an opponenet..." "Submit")]))
+     (if waiting-for-join? "Waiting for an opponent..." "Submit")]))
 
 (defn create-game-panel []
   (let [waiting-for-join? @(re-frame/subscribe [::subs/waiting-for-join?])
@@ -151,7 +151,7 @@
         [:div [:hr] [:h2 "self-check"]
          "When enabled, you can put yourself in check."]
          (= rule :en-passant?)
-         [:div [:hr] [:h2 "en-passent"]
+         [:div [:hr] [:h2 "en passant"]
           "Enable or disable an obscure rule about capturing pawns."]
          (= rule :color-tiles?)
          [:div [:hr] [:h2 "color tiles"]
