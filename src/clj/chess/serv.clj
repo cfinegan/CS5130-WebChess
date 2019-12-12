@@ -304,8 +304,8 @@
         opponent (and game (game-get-opponent game channel))]
     (if (and opponent
              team
-             (not (:undo game))
-             (not (= (game-active-team game) team)))
+             (not (:undo game)))
+             ;; (not (= (game-active-team game) team)))
       (let [new-game (game-request-undo game channel)]
         (if new-game
           (let [new-srv (ChessServer. (:clients srv)
