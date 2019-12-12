@@ -231,7 +231,8 @@
         game-over? @(re-frame/subscribe [::subs/game-over?])
         opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
     [:div
-     [:div.row [:div.col [:b game-name]]]
+     [:div.row [:div.col [:h1 game-name]]]
+     [:hr]
      [:div.row [:div.col (whos-turn-panel)]]
      [:div.row.pt-3.pb-3
       [:div.col (board-panel)]
