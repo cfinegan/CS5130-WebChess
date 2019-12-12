@@ -23,6 +23,6 @@
   (set! (.-onopen db/conn)
         (fn [_]
           (set! (.-onmessage db/conn) events/client-handle-response)
-          (re-frame/dispatch-sync [::events/initialize-db])
+          (re-frame/dispatch-sync [::events/return-to-lobby])
           (dev-setup)
           (mount-root))))

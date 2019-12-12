@@ -12,12 +12,6 @@
   (.stringify js/JSON (clj->js obj)))
 
 (re-frame/reg-event-db
- ::initialize-db
- (fn [_ _]
-   (.send db/conn (write-json-str {:type :refresh-game-list}))
-   db/default-db))
-
-(re-frame/reg-event-db
  ::return-to-lobby
  (fn [_ _]
    (do
