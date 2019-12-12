@@ -33,7 +33,6 @@ Open `resources/public/index.html` in your browser.
 
 ## TODO
 
-- Lobby System
 - HTTP interface
   - Right now, we use WebSockets for everything, but we should only use them for game
 	logic, and implement other systems (like joining a game, fetching the list of games)
@@ -42,6 +41,10 @@ Open `resources/public/index.html` in your browser.
   - We should be generating page content based on the URL whenever possible, so that
 	the back/forward/refresh buttons behave as expacted, and so that players can share
 	links to games.
+- Detect checkmate and end game immediately if so
+- One player leaving a game shouldn't immediately destroy it, but rather re-enter it into
+  the list of games
+	- This requires supporting clients entering a game that may be in-progress.
 
 
 ## Technical Debt
@@ -61,3 +64,6 @@ Open `resources/public/index.html` in your browser.
 	- `valid-moves`, `check?`, etc., shouldn't need a reference to a `rules` object.
 	- en-passant being an optional rule should be a special case if that's what we want.
 	- clean up `valid-moves` to be more readable.
+- Undo requests should include what board state the requesting client *thinks* the game is in
+  - The server should respond reasonably if a stale client requests an undo for a board state
+	  that has already been surpassed.
