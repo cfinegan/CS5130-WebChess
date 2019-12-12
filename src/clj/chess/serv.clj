@@ -113,7 +113,7 @@
         srv))))
 
 (defn server-handle-create-game [channel msg]
-  (info channel "is creating a game with rules" (:rules msg))
+  (info channel "is creating a game" (:name msg) "with rules" (:rules msg))
   (locking server
     (vswap! server server-handle-create-game* channel msg)))
 

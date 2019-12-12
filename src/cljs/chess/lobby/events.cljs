@@ -39,13 +39,13 @@
 (re-frame/reg-event-fx
  ::submit-game
  [lobby-path]
- (fn [cofx _]
+ (fn [cofx [_ game-name]]
    (let [db (:db cofx)]
      (do
        (.send db/conn
               (write-json-str
                {:type :create-game
-                :name "mygame"
+                :name game-name
                 :rules (:rules db)}))
        {:db (assoc db :waiting-for-join? true)}))))
 
