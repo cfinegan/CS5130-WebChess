@@ -130,14 +130,15 @@
             ~@(forv [g games]
                 (let [rules (:rules g)]
                   [:tr
-                   {:on-click (on-find-game-click g)}
                    [:td (:name g)]
                    [:td.rule-col {:on-mouse-over (make-on-rule-hover :self-check?)}
                     (bool-str (:self-check? rules))]
                    [:td.rule-col {:on-mouse-over (make-on-rule-hover :en-passant?)}
                     (bool-str (:en-passant? rules))]
                    [:td.rule-col {:on-mouse-over (make-on-rule-hover :color-tiles?)}
-                    (bool-str (:color-tiles? rules))]]))]]))]))
+                    (bool-str (:color-tiles? rules))]
+                   [:td.join-col {:on-click (on-find-game-click g)}
+                    "JOIN"]]))]]))]))
 
 (defn tooltip-panel []
   (let [rule @(re-frame/subscribe [::subs/tooltip])]

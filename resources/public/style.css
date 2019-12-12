@@ -48,6 +48,24 @@
 
 .rule-col:hover { background-color: #cccccc; }
 
+.join-col {
+		background-color: #00d500;
+		text-align: center;
+		color: white;
+		font-weight: bold;
+		letter-spacing: 2px;
+}
+
+@keyframes join-col-hover {
+		from { background-color: #00d500; }
+		to {background-color: #00ff00; }
+}
+.join-col:hover {
+		background-color: #00ff00;
+		animation-name: join-col-hover;
+		animation-duration: 0.4s;
+}
+
 @media(min-width: 576px) {
 		.board-pane {
 				width: 300px;
