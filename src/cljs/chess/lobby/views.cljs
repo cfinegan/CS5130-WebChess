@@ -4,7 +4,6 @@
    [reagent.core :as reagent]
    [chess.lobby.subs :as subs]
    [chess.lobby.events :as events]
-   [chess.macros :refer-macros [forv]]
    ))
 
 (defn html-str [str]
@@ -132,21 +131,22 @@
             [:th "Self-check"]
             [:th "En passant"]
             [:th "Color tiles"]]]
-          `[:tbody
-            ~@(forv [g games]
-                (let [rules (:rules g)]
-                  [:tr {:on-mouse-leave (make-on-rule-hover nil)}
-                   [:td  {:on-mouse-over (make-on-rule-hover nil)}
-                    (:name g)]
-                   [:td.rule-col {:on-mouse-over (make-on-rule-hover :self-check?)}
-                    (bool-str (:self-check? rules))]
-                   [:td.rule-col {:on-mouse-over (make-on-rule-hover :en-passant?)}
-                    (bool-str (:en-passant? rules))]
-                   [:td.rule-col {:on-mouse-over (make-on-rule-hover :color-tiles?)}
-                    (bool-str (:color-tiles? rules))]
-                   [:td.join-col.rounded-lg {:on-click (on-find-game-click g)
-                                  :on-mouse-over (make-on-rule-hover nil)}
-                    "JOIN"]]))]]))]))
+          (into
+           [:tbody]
+           (for [g games]
+             (let [rules (:rules g)]
+               [:tr {:on-mouse-leave (make-on-rule-hover nil)}
+                [:td  {:on-mouse-over (make-on-rule-hover nil)}
+                 (:name g)]
+                [:td.rule-col {:on-mouse-over (make-on-rule-hover :self-check?)}
+                 (bool-str (:self-check? rules))]
+                [:td.rule-col {:on-mouse-over (make-on-rule-hover :en-passant?)}
+                 (bool-str (:en-passant? rules))]
+                [:td.rule-col {:on-mouse-over (make-on-rule-hover :color-tiles?)}
+                 (bool-str (:color-tiles? rules))]
+                [:td.join-col.rounded-lg {:on-click (on-find-game-click g)
+                                          :on-mouse-over (make-on-rule-hover nil)}
+                 "JOIN"]])))]))]))
 
 (defn tooltip-panel []
   (let [rule @(re-frame/subscribe [::subs/tooltip])]
@@ -166,15 +166,15 @@
 (defn main-panel []
   (let [rules @(re-frame/subscribe [::subs/rules])]
     [:div
-     [:div.row [:div.col (header-panel)]]
+     [:div.row [:div.col [header-panel]]]
      [:div.row [:div.col
-                (create-game-button-panel)
+                [create-game-button-panel]
                 (when-not rules " ")
                 (when-not rules
-                  (refresh-game-list-button-panel))]]
+                  [refresh-game-list-button-panel])]]
      [:div.row
       [:div.col
        (if rules
-         (create-game-panel)
-         (game-list-panel))]]
-     [:div.row [:div.col (tooltip-panel)]]]))
+         [create-game-panel]
+         [game-list-panel])]]
+     [:div.row [:div.col [tooltip-panel]]]]))

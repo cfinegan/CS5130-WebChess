@@ -2,7 +2,6 @@
   (:require
    [re-frame.core :as re-frame]
    [chess.chess :as chess]
-   [chess.macros :refer-macros [forv]]
    [chess.match.subs :as subs]
    [chess.match.events :as events]
    ))
@@ -61,6 +60,13 @@
     (.preventDefault e)
     (re-frame/dispatch [::events/board-click x y])))
 
+(defn board-tile [pos piece class]
+  [:td {:on-click (make-board-on-click (:x pos) (:y pos))
+        :class class}
+   (html-str (if piece
+               (piece->unicode (:team piece) (:type piece))
+               "&nbsp;"))])
+
 (defn board-panel []
   (let [history @(re-frame/subscribe [::subs/history])
         selection @(re-frame/subscribe [::subs/selection])
@@ -73,18 +79,16 @@
         idxs (if rotate? (reverse (range 8)) (range 8))]
     [:div
      [:table.board-pane
-      `[:tbody
-        ~@(forv [i idxs]
-            `[:tr
-              ~@(forv [j idxs]
-                  (let [pos (chess/->Coord j i)
-                        piece (board pos)
-                        bg-class (tile-class pos selection bad-select? last-move)]
-                    [:td {:on-click (make-board-on-click j i)
-                          :class bg-class}
-                     (html-str (if piece
-                                 (piece->unicode (:team piece) (:type piece))
-                                 "&nbsp;"))]))])]]]))
+      (into
+       [:tbody]
+       (for [i idxs]
+         (into
+          [:tr]
+          (for [j idxs]
+            (let [pos (chess/->Coord j i)
+                  piece (board pos)
+                  class (tile-class pos selection bad-select? last-move)]
+              [board-tile pos piece class])))))]]))
 
 (def type-order
   [chess/PAWN chess/ROOK chess/BISHOP chess/KNIGHT chess/QUEEN])
@@ -93,11 +97,12 @@
   (let [history @(re-frame/subscribe [::subs/history])
         game (last history)
         caps (:captures game)]
-    `[:ul.captures-list
-      ~@(forv [type type-order]
-          (let [num (caps [team type] 0)]
-            (when true ;;(not (= 0 num))
-              [:li (html-str (piece->unicode team type)) " x " num])))]))
+    (into
+     [:ul.captures-list
+      (for [type type-order]
+        (let [num (caps [team type] 0)]
+          (when true
+            [:li (html-str (piece->unicode team type)) " x " num])))])))
 
 (defn whos-turn-panel []
   (let [team @(re-frame/subscribe [::subs/team])
@@ -157,43 +162,37 @@
       :disabled forfeit?}
      "Forfeit"]))
 
-(defn undo-panel-on-click [e]
+(defn undo-request-on-click [e]
   (.preventDefault e)
   (re-frame/dispatch [::events/request-undo-click]))
 
-(defn undo-panel []
-  (let [undo? @(re-frame/subscribe [::subs/undo?])
-        history @(re-frame/subscribe [::subs/history])]
-    [:button
-     {:class "btn btn-dark"
-      :on-click undo-panel-on-click
-      :disabled (or undo?
-                    (<= (count history) 1))}
-     "Request undo"]))
-
-(defn opponent-undo-panel-on-click-accept [e]
+(defn undo-accept-on-click [e]
   (.preventDefault e)
   (re-frame/dispatch [::events/respond-undo-click true]))
 
-(defn opponent-undo-panel-on-click-reject [e]
+(defn undo-reject-on-click [e]
   (.preventDefault e)
   (re-frame/dispatch [::events/respond-undo-click false]))
 
-(defn opponent-undo-panel-accept []
-  (let [undo? @(re-frame/subscribe [::subs/undo?])]
-    [:button
-     {:class "btn btn-dark"
-      :on-click opponent-undo-panel-on-click-accept
-      :disabled undo?}
-     "Accept undo"]))
-
-(defn opponent-undo-panel-reject []
-  (let [undo? @(re-frame/subscribe [::subs/undo?])]
-    [:button
-     {:class "btn btn-dark"
-      :on-click opponent-undo-panel-on-click-reject
-      :disabled undo?}
-     "Reject undo"]))
+(defn undo-panel []
+  (let [undo? @(re-frame/subscribe [::subs/undo?])
+        opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])
+        history @(re-frame/subscribe [::subs/history])]
+    (if opponent-undo?
+      [:span
+       [:button {:class "btn btn-dark"
+                 :on-click undo-accept-on-click
+                 :disabled undo?}
+        "Accept undo"]
+       " "
+       [:button {:class "btn btn-dark"
+                 :on-click undo-reject-on-click
+                 :disabled undo?}
+        "Reject undo"]]
+      [:button {:class "btn btn-dark"
+                :on-click undo-request-on-click
+                :disabled (or undo? (<= (count history) 1))}
+       "Request undo"])))
 
 (def legend-panel-info
   [["#2eccfa" "A valid move"]
@@ -217,37 +216,32 @@
         (html-str header-arrow) " color legend"]
        (when (not minimized?)
          [:table.mt-0.border.legend-table
-          `[:tbody
-            ~@(forv [[color desc] legend-panel-info]
-                [:tr
-                 [:td {:class "legend-color-col black-border"
-                       :style {:background-color color}}
-                      (html-str "&nbsp;")]
-                 [:td.pl-3.black-border desc]])]])])))
+          (into
+           [:tbody]
+           (for [[color desc] legend-panel-info]
+             [:tr
+              [:td {:class "legend-color-col black-border"
+                    :style {:background-color color}}
+               (html-str "&nbsp;")]
+              [:td.pl-3.black-border desc]]))])])))
 
 (defn main-panel []
-  (let [game-id @(re-frame/subscribe [::subs/game-id])
-        game-name @(re-frame/subscribe [::subs/game-name])
+  (let [game-name @(re-frame/subscribe [::subs/game-name])
         game-over? @(re-frame/subscribe [::subs/game-over?])
         opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])]
     [:div
      [:div.row [:div.col [:h1 game-name]]]
      [:hr]
-     [:div.row [:div.col (whos-turn-panel)]]
+     [:div.row [:div.col [whos-turn-panel]]]
      [:div.row.pt-3.pb-3
-      [:div.col (board-panel)]
+      [:div.col [board-panel]]
       [:div.col.captures
-       (captures-panel chess/WHITE)
+       [captures-panel chess/WHITE]
        [:hr]
-       (captures-panel chess/BLACK)]]
+       [captures-panel chess/BLACK]]]
      [:div.row
       [:div.col
        (if game-over?
-         (leave-panel)
-         [:span
-          (if opponent-undo?
-            [:span (opponent-undo-panel-accept) " " (opponent-undo-panel-reject)]
-            [:span (undo-panel)])
-          " "
-          (forfeit-panel)])]]
-     [:div.row [:div.col (legend-panel)]]]))
+         [leave-panel]
+         [:span [undo-panel] " " [forfeit-panel]])]]
+     [:div.row [:div.col [legend-panel]]]]))
