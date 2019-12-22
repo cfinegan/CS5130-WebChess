@@ -160,7 +160,7 @@
           "Enable or disable an obscure rule about capturing pawns."]
          (= rule :color-tiles?)
          [:div [:hr] [:h2 "color tiles"]
-          "Color code potential moves according to their value."
+          "Color code potential moves according to their value. "
           "This will let you know if a potential move would put your piece in danger."]))))
 
 (defn main-panel []
