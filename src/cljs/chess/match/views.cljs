@@ -55,6 +55,8 @@
           dark? "tile-dark"
           :else "tile-light")))
 
+;; Board
+
 (defn make-board-on-click [x y]
   (fn [e]
     (.preventDefault e)
@@ -89,6 +91,8 @@
                   class (tile-class pos selection bad-select? last-move)]
               ^{:key j} [board-tile pos piece class]))])]]]))
 
+;; Captures
+
 (def type-order
   [chess/PAWN chess/ROOK chess/BISHOP chess/KNIGHT chess/QUEEN])
 
@@ -103,6 +107,8 @@
      (for [type type-order]
        (let [num (caps [team type] 0)]
          ^{:key type} [captures-entry team type num]))]))
+
+;; Who's turn
 
 (defn whos-turn-panel []
   (let [team @(re-frame/subscribe [::subs/team])
@@ -138,6 +144,8 @@
                (str message ".")))
            "It's your opponent's turn, please wait.")))]))
 
+;; Leave
+
 (defn leave-panel-on-click [e]
   (.preventDefault e)
   (re-frame/dispatch [::events/leave-game-click]))
@@ -150,6 +158,8 @@
       :disabled leaving?}
      "Return to lobby"]))
 
+;; Forfeit
+
 (defn forfeit-panel-on-click [e]
   (.preventDefault e)
   (re-frame/dispatch [::events/forfeit-game-click]))
@@ -161,6 +171,8 @@
       :on-click forfeit-panel-on-click
       :disabled forfeit?}
      "Forfeit"]))
+
+;; Undo
 
 (defn undo-request-panel [undo? history]
   [:button {:class "btn btn-dark"
@@ -187,6 +199,8 @@
     (if opponent-undo?
       [undo-respond-panel undo?]
       [undo-request-panel undo? history])))
+
+;; Legend
 
 (def legend-panel-info
   [["#2eccfa" "A valid move"]
@@ -216,6 +230,8 @@
           [:tbody
            (for [[color desc] legend-panel-info]
              ^{:key color} [legend-entry color desc])]])])))
+
+;; Main
 
 (defn main-panel []
   (let [game-name @(re-frame/subscribe [::subs/game-name])
