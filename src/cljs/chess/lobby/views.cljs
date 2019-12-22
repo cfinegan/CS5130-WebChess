@@ -164,11 +164,11 @@
   (let [rules @(re-frame/subscribe [::subs/rules])]
     [:div
      [:div.row [:div.col [header-panel]]]
-     [:div.row [:div.col
-                [create-game-button-panel]
-                (when-not rules " ")
-                (when-not rules
-                  [refresh-game-list-button-panel])]]
+     [:div.row
+      [:div.col
+       [create-game-button-panel]
+       (when-not rules
+         [:span " " [refresh-game-list-button-panel]])]]
      [:div.row
       [:div.col
        (if rules
