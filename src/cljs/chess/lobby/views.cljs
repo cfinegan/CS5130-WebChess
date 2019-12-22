@@ -51,6 +51,11 @@
   (fn [_]
     (re-frame/dispatch [::events/rule-mouse-over rule])))
 
+(def on-self-check-hover (make-on-rule-hover :self-check?))
+(def on-en-passant-hover (make-on-rule-hover :en-passant?))
+(def on-color-tiles-hover (make-on-rule-hover :color-tiles?))
+(def on-nil-hover (make-on-rule-hover nil))
+
 (defn create-game-panel []
   (let [waiting-for-join? @(re-frame/subscribe [::subs/waiting-for-join?])
         game-name @(re-frame/subscribe [::subs/game-name])
@@ -74,8 +79,8 @@
                    :checked (:self-check? rules)}]
       [:label {:for "self-check-box"
                :on-click on-self-check-click
-               :on-mouse-over (make-on-rule-hover :self-check?)
-               :on-mouse-leave (make-on-rule-hover nil)}
+               :on-mouse-over on-self-check-hover
+               :on-mouse-leave on-nil-hover}
        "Self-check"]]
      [:div.p-1
       [:input.m-2 {:type :checkbox
@@ -84,8 +89,8 @@
                    :checked (:en-passant? rules)}]
       [:label {:for "en-passant-box"
                :on-click on-en-passant-click
-               :on-mouse-over (make-on-rule-hover :en-passant?)
-               :on-mouse-leave (make-on-rule-hover nil)}
+               :on-mouse-over on-en-passant-hover
+               :on-mouse-leave on-nil-hover}
        "En-passant"]]
      [:div.p-1
       [:input.m-2 {:type :checkbox
@@ -94,8 +99,8 @@
                    :checked (:color-tiles? rules)}]
       [:label {:for "color-tiles-box"
                :on-click on-color-tiles-click
-               :on-mouse-over (make-on-rule-hover :color-tiles?)
-               :on-mouse-leave (make-on-rule-hover nil)}
+               :on-mouse-over on-color-tiles-hover
+               :on-mouse-leave on-nil-hover}
        "Color tiles"]]
      [:div.p-2 (submit-game-button-panel)]]))
 
@@ -114,36 +119,40 @@
 (defn bool-str [b]
   (if b "enabled" "disabled"))
 
+(defn game-listing [game]
+  (let [{id :id name :name rules :rules} game]
+    [:tr
+     [:td {:on-mouse-over on-nil-hover}
+      name]
+     [:td.rule-col {:on-mouse-over on-self-check-hover}
+      (bool-str (:self-check rules))]
+     [:td.rule-col {:on-mouse-over on-en-passant-hover}
+      (bool-str (:en-passant? rules))]
+     [:td.rule-col {:on-mouse-over on-color-tiles-hover}
+      (bool-str (:color-tiles? rules))]
+     [:td {:class "join-col rounded-lg"
+           :on-click (on-find-game-click game)
+           :on-mouse-over on-nil-hover}
+      "JOIN"]]))
+
 (defn game-list-panel []
   (let [games @(re-frame/subscribe [::subs/games])]
     [:div.pt-3.pb-3
      (when games
        (if (empty? games)
          "Sorry, no games! Try creating one or click 'Refresh'."
-         [:table.border.rounded
-          {:class "table table-striped"}
+         [:table {:class "border rounded table table-striped"
+                  :on-mouse-leave on-nil-hover}
           [:thead
            [:tr
-            [:th "Name"]
-            [:th "Self-check"]
-            [:th "En passant"]
-            [:th "Color tiles"]]]
-          (into
-           [:tbody]
+            [:th {:on-mouse-over on-nil-hover} "Name"]
+            [:th {:on-mouse-over on-self-check-hover} "Self-check"]
+            [:th {:on-mouse-over on-en-passant-hover} "En passant"]
+            [:th {:on-mouse-over on-color-tiles-hover} "Color tiles"]
+            [:th {:on-mouse-over on-nil-hover}]]]
+          [:tbody
            (for [g games]
-             (let [rules (:rules g)]
-               [:tr {:on-mouse-leave (make-on-rule-hover nil)}
-                [:td  {:on-mouse-over (make-on-rule-hover nil)}
-                 (:name g)]
-                [:td.rule-col {:on-mouse-over (make-on-rule-hover :self-check?)}
-                 (bool-str (:self-check? rules))]
-                [:td.rule-col {:on-mouse-over (make-on-rule-hover :en-passant?)}
-                 (bool-str (:en-passant? rules))]
-                [:td.rule-col {:on-mouse-over (make-on-rule-hover :color-tiles?)}
-                 (bool-str (:color-tiles? rules))]
-                [:td.join-col.rounded-lg {:on-click (on-find-game-click g)
-                                          :on-mouse-over (make-on-rule-hover nil)}
-                 "JOIN"]])))]))]))
+             ^{:key (:id g)} [game-listing g])]]))]))
 
 (defn tooltip-panel []
   (let [rule @(re-frame/subscribe [::subs/tooltip])]

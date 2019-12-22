@@ -61,11 +61,12 @@
     (re-frame/dispatch [::events/board-click x y])))
 
 (defn board-tile [pos piece class]
-  [:td {:on-click (make-board-on-click (:x pos) (:y pos))
-        :class class}
-   (html-str (if piece
-               (piece->unicode (:team piece) (:type piece))
-               "&nbsp;"))])
+  (let [{x :x y :y} pos]
+    [:td {:on-click (make-board-on-click x y)
+          :class class}
+     (html-str (if piece
+                 (piece->unicode (:team piece) (:type piece))
+                 "&nbsp;"))]))
 
 (defn board-panel []
   (let [history @(re-frame/subscribe [::subs/history])
@@ -79,30 +80,29 @@
         idxs (if rotate? (reverse (range 8)) (range 8))]
     [:div
      [:table.board-pane
-      (into
-       [:tbody]
+      [:tbody
        (for [i idxs]
-         (into
-          [:tr]
+         [:tr {:key i}
           (for [j idxs]
             (let [pos (chess/->Coord j i)
                   piece (board pos)
                   class (tile-class pos selection bad-select? last-move)]
-              [board-tile pos piece class])))))]]))
+              ^{:key j} [board-tile pos piece class]))])]]]))
 
 (def type-order
   [chess/PAWN chess/ROOK chess/BISHOP chess/KNIGHT chess/QUEEN])
+
+(defn captures-entry [team type num]
+  [:li (html-str (piece->unicode team type)) " x " num])
 
 (defn captures-panel [team]
   (let [history @(re-frame/subscribe [::subs/history])
         game (last history)
         caps (:captures game)]
-    (into
-     [:ul.captures-list
-      (for [type type-order]
-        (let [num (caps [team type] 0)]
-          [:li {:key type}
-           (html-str (piece->unicode team type)) " x " num]))])))
+    [:ul.captures-list
+     (for [type type-order]
+       (let [num (caps [team type] 0)]
+         ^{:key type} [captures-entry team type num]))]))
 
 (defn whos-turn-panel []
   (let [team @(re-frame/subscribe [::subs/team])
@@ -162,37 +162,31 @@
       :disabled forfeit?}
      "Forfeit"]))
 
-(defn undo-request-on-click [e]
-  (.preventDefault e)
-  (re-frame/dispatch [::events/request-undo-click]))
+(defn undo-request-panel [undo? history]
+  [:button {:class "btn btn-dark"
+            :on-click #(re-frame/dispatch [::events/request-undo-click])
+            :disabled (or undo? (<= (count history) 1))}
+   "Request undo"])
 
-(defn undo-accept-on-click [e]
-  (.preventDefault e)
-  (re-frame/dispatch [::events/respond-undo-click true]))
-
-(defn undo-reject-on-click [e]
-  (.preventDefault e)
-  (re-frame/dispatch [::events/respond-undo-click false]))
+(defn undo-respond-panel [undo?]
+  [:span
+   [:button {:class "btn btn-dark"
+             :on-click #(re-frame/dispatch [::events/respond-undo-click true])
+             :disabled undo?}
+    "Accept undo"]
+   " "
+   [:button {:class "btn btn-dark"
+             :on-click #(re-frame/dispatch [::events/respond-undo-click false])
+             :disabled undo?}
+    "Reject undo"]])
 
 (defn undo-panel []
   (let [undo? @(re-frame/subscribe [::subs/undo?])
         opponent-undo? @(re-frame/subscribe [::subs/opponent-undo?])
         history @(re-frame/subscribe [::subs/history])]
     (if opponent-undo?
-      [:span
-       [:button {:class "btn btn-dark"
-                 :on-click undo-accept-on-click
-                 :disabled undo?}
-        "Accept undo"]
-       " "
-       [:button {:class "btn btn-dark"
-                 :on-click undo-reject-on-click
-                 :disabled undo?}
-        "Reject undo"]]
-      [:button {:class "btn btn-dark"
-                :on-click undo-request-on-click
-                :disabled (or undo? (<= (count history) 1))}
-       "Request undo"])))
+      [undo-respond-panel undo?]
+      [undo-request-panel undo? history])))
 
 (def legend-panel-info
   [["#2eccfa" "A valid move"]
@@ -200,9 +194,12 @@
    ["#2efe64" "An opportunity"]
    ["#b404ae" "An opportunity with a cost"]])
 
-(defn on-legend-header-click [e]
-  (.preventDefault e)
-  (re-frame/dispatch [::events/legend-toggle]))
+(defn legend-entry [color desc]
+  [:tr
+   [:td {:class "legend-color-col black-border"
+         :style {:background-color color }}
+    (html-str "&nbsp;")]
+   [:td.pl-3.black-border desc]])
 
 (defn legend-panel []
   (let [rules @(re-frame/subscribe [::subs/rules])
@@ -211,19 +208,14 @@
     (when (:color-tiles? rules)
       [:div.pt-3.pb-3
        [:hr]
-       [:h3.mb-0.p-1.pl-2.legend-header
-        {:on-click on-legend-header-click}
+       [:h3 {:class "mb-0 p-1 pl-2 legend-header"
+             :on-click #(re-frame/dispatch [::events/legend-toggle])}
         (html-str header-arrow) " color legend"]
        (when (not minimized?)
          [:table.mt-0.border.legend-table
-          (into
-           [:tbody]
+          [:tbody
            (for [[color desc] legend-panel-info]
-             [:tr
-              [:td {:class "legend-color-col black-border"
-                    :style {:background-color color}}
-               (html-str "&nbsp;")]
-              [:td.pl-3.black-border desc]]))])])))
+             ^{:key color} [legend-entry color desc])]])])))
 
 (defn main-panel []
   (let [game-name @(re-frame/subscribe [::subs/game-name])
