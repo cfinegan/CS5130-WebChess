@@ -101,8 +101,8 @@
      [:ul.captures-list
       (for [type type-order]
         (let [num (caps [team type] 0)]
-          (when true
-            [:li (html-str (piece->unicode team type)) " x " num])))])))
+          [:li {:key type}
+           (html-str (piece->unicode team type)) " x " num]))])))
 
 (defn whos-turn-panel []
   (let [team @(re-frame/subscribe [::subs/team])
