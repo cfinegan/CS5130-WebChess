@@ -6,9 +6,6 @@
    [chess.lobby.events :as events]
    ))
 
-(defn html-str [str]
-  [:span {:dangerouslySetInnerHTML {:__html str}}])
-
 (defn on-find-game-click [g]
   (fn [e]
     (.preventDefault e)
